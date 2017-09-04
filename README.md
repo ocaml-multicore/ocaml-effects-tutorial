@@ -4,8 +4,9 @@ Materials for the [CUFP 17 tutorial](cufp.org/2017/c3-daniel-hillerstrom-kc-conc
 
 ## Setting up
 
-*If you are on a Windows machine, it is best to grab the virtual box image with
-Multicore OCaml setup already.*
+*If you are on a Windows machine, it is best to grab the [virtual box
+image](https://drive.google.com/open?id=0BymJ9X3Wgp6hSGNBVDVXbXA2UTg) with
+Multicore OCaml already setup.*
 
 First you will need a local installation of the Multicore OCaml compiler. It is
 recommended that you install it via the [OCaml Package Manager
@@ -670,10 +671,10 @@ the traversal on the library side. An example is `List.iter :  ('a -> unit) ->
 We can provide the following general type for iterators:
 
 ```ocaml
-type ('elt,'cont) iterator = ('elt -> unit) -> 'cont -> unit
+type ('elt,'container) iterator = ('elt -> unit) -> 'container-> unit
 ```
 
-where `'elt` is the type of element and `'cont` is the type of the container
+where `'elt` is the type of element and `'container` is the type of the container
 over which the function iterates. 
 
 On the other hand, a generator is a function where the client of the library has
@@ -698,7 +699,7 @@ function.
 
 ### Exercise 3: Derive generator for an arbitrary iterator ★★★★☆
 
-Your task is to implement the function `generate : ('elt, 'cont) iterator ->
+Your task is to implement the function `generate : ('elt, 'container) iterator ->
 'elt generator` which derives the generator for any iterator function.
 
 Hint: Since calling the generator function is an effectful operation, you might

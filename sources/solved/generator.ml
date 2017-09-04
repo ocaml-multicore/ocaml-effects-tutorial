@@ -1,8 +1,8 @@
-type ('elt,'cont) iterator = ('elt -> unit) -> 'cont -> unit
+type ('elt,'container) iterator = ('elt -> unit) -> 'container -> unit
 
 type 'elt generator = unit -> 'elt option
 
-let generate (type elt) (i : (elt, 'cont) iterator) (c : 'cont) : elt generator =
+let generate (type elt) (i : (elt, 'container) iterator) (c : 'container) : elt generator =
   let module M = struct effect Yield : elt -> unit end in
   let open M in
   let rec step = ref (fun () ->
