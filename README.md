@@ -20,8 +20,8 @@ Clone this repository in order to obtain a local copy of the code stubs, and
 thereafter navigate to the exercise directory:
 
 ```bash
-$ git clone --depth 1 https://github.com/dhil/multicore-ocaml-cufp17-tutorial.git
-$ cd multicore-ocaml-cufp17-tutorial/sources
+$ git clone https://github.com/ocamllabs/ocaml-effects-tutorial.git
+$ cd ocaml-effects-tutorial
 ```
 
 ### Codesigning GDB on MacOS
