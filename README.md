@@ -394,7 +394,10 @@ handles the effect. The popped sequence of fibers becomes the delimited
 continuation.
 
 ```
-perform E
+effect E : unit 
+
+try perform E with
+| effect E k -> ....
 
 Execution stack
 ---------------
