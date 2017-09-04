@@ -693,7 +693,7 @@ mechanism to suspend **arbitrary** computation and capture it in the
 continuation. Hence, we can derive the generator for an arbitrary iterator
 function.
 
-### Exercise 3: Derive generator for an arbitrary ★★★☆
+### Exercise 3: Derive generator for an arbitrary iterator ★★★★☆
 
 Your task is to implement the function `generate : ('elt, 'cont) iterator ->
 'elt generator` which derives the generator for any iterator function.
