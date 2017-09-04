@@ -272,7 +272,7 @@ Exception: Unhandled.
 - : string = "done"
 ```
 
-### Exercise 1: Implementing exceptions from effects ★★☆☆☆
+### Exercise 1: Implement exceptions from effects ★★☆☆☆
 
 As mentioned before, effects generalize exceptions. Exceptions handlers are
 effect handlers that ignore the continuation. Your task is to implement
@@ -345,7 +345,7 @@ forty two
 forty two
 ```
 
-### Exercise 2: Implementing state put and history ★☆☆☆☆
+### Exercise 2: Implement state put and history ★☆☆☆☆
 
 Your task it to implement `put : t -> unit` that updates the state and `history
 : unit -> t list` that returns the list of values put. Do not use references.
