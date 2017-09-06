@@ -49,10 +49,10 @@ The tutorial is structured as follows:
 5. [Cooperative Concurrency.](#5-cooperative-concurrency)  
   5.1. [Coroutines](#51-coroutines)  
   5.2. [Async/Await](#52-asyncawait)  
-6. [Asynchronous I/O.](#6-asynchronous-io)
-  6.1. [Blocking echo server](#61-blocking-echo-server)
-  6.2. [Asynchronous echo server](#62-asynchronous-echo-server)
-7. [Conclusion.](#7-conclusion)
+6. [Asynchronous I/O.](#6-asynchronous-io)  
+  6.1. [Blocking echo server](#61-blocking-echo-server)  
+  6.2. [Asynchronous echo server](#62-asynchronous-echo-server)  
+7. [Conclusion.](#7-conclusion)  
 
 The tutorial also includes the following exercises:
 
