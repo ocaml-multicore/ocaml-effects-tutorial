@@ -225,7 +225,7 @@ parameter, which when performed, returns an integer.
 
 Just like exceptions, effects are values. The type of `Conversion_failure
 "MMXVII"` is `int effect`, where `int` is the result of performing the effect.
-We perform with effect with `perform : 'a eff -> 'a` primitive (c.f. `raise :
+We perform the effect with `perform : 'a eff -> 'a` primitive (c.f. `raise :
 exn -> 'a (* bottom *)`). 
 
 Effect handlers are similar to exception handlers:
