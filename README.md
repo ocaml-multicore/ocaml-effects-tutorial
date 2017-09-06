@@ -37,14 +37,22 @@ The tutorial is structured as follows:
 
 1. [Algebraic Effects and Handlers.](#1-algebraic-effects-and-handlers)  
   1.1. [Recovering from errors](#11-recovering-from-errors)  
-  1.2. [Basics](#12-basics)  
-      1.2.1. [Effects are unchecked](#121-effects-are-unchecked)  
-2. [Effectful Computations in a Pure Setting.](#2-effectful-computations-in-a-pure-setting)  
-3. Delimited Continuations: A deep dive.
-4. General control-flow abstractions: generators & streams.
-5. Cooperative Concurrency.
-6. Asynchronous I/O.
-7. Conclusion.
+  1.2. [Basics](#12-basics)   
+2. [Effectful Computations in a Pure Setting.](#2-effectful-computations-in-a-pure-setting)    
+3. [Delimited Continuations: A deep dive.](#3-delimited-continuations-a-deep-dive)  
+  3.1. [Examining effect handlers through GDB](#31-examining-effect-handlers-through-gdb)  
+4. [Generators & Streams.](#4-general-control-flow-abstractions-generators--streams)  
+  4.1. [Message passing](#41-message-passing)   
+  4.2. [Generators from iterators](#42-generators-from-iterators)  
+  4.3. [Using the generator](#43-using-the-generator)  
+  4.4. [Streams](#44-streams)  
+5. [Cooperative Concurrency.](#5-cooperative-concurrency)  
+  5.1. [Coroutines](#51-coroutines)  
+  5.2. [Async/Await](#52-asyncawait)  
+6. [Asynchronous I/O.](#6-asynchronous-io)
+  6.1. [Blocking echo server](#61-blocking-echo-server)
+  6.2. [Asynchronous echo server](#62-asynchronous-echo-server)
+7. [Conclusion.](#7-conclusion)
 
 The tutorial also includes the following exercises:
 
@@ -747,7 +755,7 @@ Two binary trees have the same fringe if they have exactly the same leaves
 reading from left to right. Given two binary trees decide whether they have the
 same fringe. The source file is `sources/fringe.ml`.
 
-#### 4.4. Streams
+### 4.4. Streams
 
 The iterator need not necessarily be defined on finite data structure. Here is
 an iterator that iterates over infinite list of integers.
