@@ -35,11 +35,11 @@ https://gcc.gnu.org/onlinedocs/gcc-4.9.0/gnat_ugn_unw/Codesigning-the-Debugger.h
 
 The tutorial is structured as follows:
 
-1. [Algebraic Effects and Handlers.](#1-algebraic-effects-and-handlers)
-  1.1. [Recovering from errors](#11-recovering-from-errors)
-  1.2. [Basics](#12-basics)
-    1.2.1. [Effects are unchecked](#121-effects-are-unchecked)
-2. [Effectful Computations in a Pure Setting.](#2-effectful-computations-in-a-pure-setting)
+1. [Algebraic Effects and Handlers.](#1-algebraic-effects-and-handlers)  
+  1.1. [Recovering from errors](#11-recovering-from-errors)  
+  1.2. [Basics](#12-basics)  
+    1.2.1. [Effects are unchecked](#121-effects-are-unchecked)  
+2. [Effectful Computations in a Pure Setting.](#2-effectful-computations-in-a-pure-setting)  
 3. Delimited Continuations: A deep dive.
 4. General control-flow abstractions: generators & streams.
 5. Cooperative Concurrency.
