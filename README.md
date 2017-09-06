@@ -4,9 +4,13 @@ Materials for the [CUFP 17 tutorial](cufp.org/2017/c3-daniel-hillerstrom-kc-conc
 
 ## Setting up
 
-*If you are on a Windows machine, it is best to grab the [virtual box
+### Windows
+
+If you are on a Windows machine, it is best to grab the [virtual box
 image](https://drive.google.com/open?id=0BymJ9X3Wgp6hSGNBVDVXbXA2UTg) with
-Multicore OCaml already setup.*
+Multicore OCaml already setup.
+
+### Linux & MacOS
 
 First you will need a local installation of the Multicore OCaml compiler. It is
 recommended that you install it via the [OCaml Package Manager
@@ -296,7 +300,7 @@ Exception: Unhandled.
 
 ### Exercise 1: Implement exceptions from effects ★★☆☆☆
 
-As mentioned before, effects generalize exceptions. Exceptions handlers are
+As mentioned before, effects generalise exceptions. Exceptions handlers are
 effect handlers that ignore the continuation. Your task is to implement
 exceptions in terms of effects. The source file is `sources/exceptions.ml`.
 
@@ -330,7 +334,7 @@ module State (S : sig type t end) : STATE with type t = S.t = struct
 end
 ```
 
-If you are familiar with state monads, the implementation idea is very similar.
+If you are familiar with state monad, the implementation idea is very similar.
 In general, algebraic effect handlers and monads have a lot in common. In fact,
 a popular way of implementing algebraic effects is through [free monadic
 interpretation](http://www.haskellforall.com/2012/06/you-could-have-invented-free-monads.html). 
@@ -377,7 +381,7 @@ The source file is `sources/state2.ml`.
 
 Algebraic effect handlers in Multicore OCaml are very efficient due to several
 choices we make in their implementation. Understanding the implementation of
-delimited contiuations also helps to develop a mental model for reasoning about
+delimited continuations also helps to develop a mental model for reasoning about
 programs that use effect handlers.
 
 Delimited continuations that appear in the effect handler are implemented on top
@@ -597,7 +601,7 @@ Continuing.
 ```
 The program terminates normally. 
 
-## 4. General control-flow abstractions: generators & streams.
+## 4. Generators & streams.
 
 So far we've seen examples where the handler discards the continuation
 (exceptions) and immediately resumes the computation (state). Since the
@@ -713,7 +717,7 @@ primitive mechanism, usually through an `yield` primitive. Typically, the
 functions that can yield require special annotations (such as `function*`) in
 JavaScript, and only yield values to the immediate caller.
 
-As we've seen in the earlier example, wlgebraic effect handlers provide a
+As we've seen in the earlier example, algebraic effect handlers provide a
 mechanism to suspend **arbitrary** computation and capture it in the
 continuation. Hence, we can derive the generator for an arbitrary iterator
 function.
@@ -724,7 +728,7 @@ Your task is to implement the function `generate : ('elt, 'container) iterator -
 'elt generator` which derives the generator for any iterator function.
 
 Hint: Since calling the generator function is an effectful operation, you might
-think about saving the state of the traversal in a referece.
+think about saving the state of the traversal in a reference.
 
 ### 4.3. Using the generator
 
@@ -823,7 +827,7 @@ let map : 'a stream -> ('a -> 'b) -> 'b stream =
   fun g f () -> f (g ())
 ```
 
-We can manipute the streams using these operators. For example,
+We can manipulate the streams using these operators. For example,
 
 ```ocaml
 (* Even stream *)
@@ -875,7 +879,7 @@ assert (31 = gen_primes ());;
 ## 5. Cooperative Concurrency
 
 OCaml has two popular libraries for cooperative concurrency: Lwt and Async. Both
-libraries acheieve concurrency through a [concurrency
+libraries achieve concurrency through a [concurrency
 monad](https://www.seas.upenn.edu/~cis552/11fa/lectures/concurrency.html). As a
 result, the programs that wish to use these libraries have to be written in
 monadic style. With effect handlers, the code could be written in direct style
@@ -1012,7 +1016,7 @@ accepts client messages and echoes them back. Observe that all of the code is
 written in direct, function-calling, and apparently blocking style. We will see
 that the same code can be used to implement a blocking as well as non-blocking
 server. A non-blocking server can concurrently host multiple client sessions
-unlike the blocking server which serializes client sessions.
+unlike the blocking server which serialises client sessions.
 
 The echo server is functorized over the network interface:
 
@@ -1118,7 +1122,7 @@ effect Send : file_descr * bytes * int * int * msg_flag list -> int
 let send fd bus pos len mode = perform (Send (fd, bus, pos, len, mode))
 ```
 
-We define funtions to poll whether a file descriptor is ready to read or write:
+We define functions to poll whether a file descriptor is ready to read or write:
 
 ```ocaml
 let ready_to_read fd =

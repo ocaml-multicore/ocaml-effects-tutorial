@@ -32,3 +32,7 @@ let _ =
     let r = sqrt (-1.0) in
     Printf.printf "%f\n" r)
   (fun Invalid_argument -> Printf.printf "Invalid_argument to sqrt\n")
+
+(* Prints:
+   6.513064
+   Invalid_argument to sqrt *)
