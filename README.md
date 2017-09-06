@@ -41,6 +41,9 @@ The tutorial is structured as follows:
 4. General control-flow abstractions: generators & streams.
 5. Cooperative Concurrency.
 6. Asynchronous I/O.
+7. Conclusion.
+
+The tutorial also includes the following exercises:
 
 ## 1. Algebraic Effects and Handlers
 
@@ -54,7 +57,7 @@ It might be difficult to pin point what an effect handler exactly is and what it
 can do. In this tutorial, we shall introduce gently algebraic effect and
 handlers with gentle examples and then continue on to more involved examples. 
 
-### Recovering from errors
+### 1.1. Recovering from errors
 
 Lets start with an example. Consider a program which reads a list of numbers
 from standard input and prints the sum of the numbers:
@@ -147,7 +150,7 @@ that the library determines whether the error is fatal or not. What we would
 like is for **the client of a library determining whether an error is fatal or
 not**. 
 
-### Basics
+### 1.2. Basics
 
 Algebraic effect handlers allow you to recover from errors. The following code
 is available in `sources/input_line_eff.ml`
@@ -248,7 +251,7 @@ Conversion failure "MMXVII"
 Fatal error: exception Failure("int_of_string")
 ```
 
-#### Effects are unchecked
+#### 1.2.1. Effects are unchecked
 
 Unlike [Eff](http://www.eff-lang.org/), [Koka](https://github.com/koka-lang/koka),
 and other languages that support effect handlers, effects in Multicore OCaml are
@@ -418,7 +421,7 @@ continuations in the case that we may need it for a future invocation. For this
 reason, context switching between fibers is really fast and is completely in
 userland code and the kernel is not involved. 
 
-### Examining effect handlers through GDB
+### 3.1 Examining effect handlers through GDB
 
 The file `sources/gdb.ml`:
 
@@ -584,7 +587,7 @@ continuations are first-class values, we can also keep them around and resume
 them later, while executing some other code in the mean time. This functionality
 allows us to implement programming idioms such as generators, async/await, etc.
 
-### Message passing
+### 4.1. Message passing
 
 Let us being with a simple example that illustrates control switching between
 two tasks. The two tasks run **cooperatively**, sending messages
@@ -663,7 +666,7 @@ a: received 1
 b: received 1
 ```
 
-### Generators from iterators
+### 4.2. Generators from iterators
 
 Iterator is a mechanism to traverse a data structure that retains the control of
 the traversal on the library side. An example is `List.iter :  ('a -> unit) ->
@@ -705,9 +708,9 @@ Your task is to implement the function `generate : ('elt, 'container) iterator -
 Hint: Since calling the generator function is an effectful operation, you might
 think about saving the state of the traversal in a referece.
 
-### Using the generator
+### 4.3. Using the generator
 
-#### Traversal
+#### 4.3.1. Traversal
 
 You can use the `generator` to traverse a data structure on demand.
 
@@ -735,13 +738,13 @@ val gl : int generator = <fun>
 - : float option = None
 ```
 
-#### Exercise 4: Same fringe problem ★☆☆☆☆
+#### 4.3.2. Exercise 4: Same fringe problem ★☆☆☆☆
 
 Two binary trees have the same fringe if they have exactly the same leaves
 reading from left to right. Given two binary trees decide whether they have the
 same fringe. The source file is `sources/fringe.ml`.
 
-#### Streams
+#### 4.4. Streams
 
 The iterator need not necessarily be defined on finite data structure. Here is
 an iterator that iterates over infinite list of integers.
@@ -862,7 +865,7 @@ but also retain the benefit of asynchronous I/O. While the resultant system
 closely resembles [Goroutines in Go](https://tour.golang.org/concurrency/1),
 with effect handlers, all of this is implemented in OCaml as a library.
 
-### Coroutines
+### 5.1. Coroutines
 
 Let us begin with a simple cooperative scheduler. The source code is available
 in `sources/cooperative.ml`. The interface we'll implement first is:
@@ -940,7 +943,7 @@ ending a
 ending b
 ```
 
-### Async/await
+### 5.2. Async/await
 
 We can extend the scheduler to implement async/await idiom. The interface we
 will implement is:
@@ -984,7 +987,7 @@ be implemented. The source file is `sources/async_await.ml`.
 
 Effect handlers lets us write asynchronous I/O libraries in direct-style. 
 
-### Blocking echo server
+### 6.1. Blocking echo server
 
 As an example, `sources/echo.ml` is a implementation of an echo server that
 accepts client messages and echoes them back. Observe that all of the code is
@@ -1076,7 +1079,7 @@ server says: world
 
 and further messages from the second client are immediately echoed.
 
-### Asynchronous echo server
+### 6.2. Asynchronous echo server
 
 We will extend our async/await implementation to support asynchronous I/O
 operations. The source file is `sources/echo_async.ml`. As usual, we declare the
@@ -1183,7 +1186,7 @@ Once you implement these primitives, you can run `echo_async.native` to start
 the asynchronous echo server. This server is able to respond to multiple
 concurrent clients.
 
-## Conclusion
+## 7. Conclusion
 
 Hopefully you've enjoyed the tutorial on algebraic effect handlers in Multicore
 OCaml. You should be familiar with:
