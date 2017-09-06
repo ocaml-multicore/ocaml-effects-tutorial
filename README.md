@@ -275,10 +275,12 @@ Fatal error: exception Failure("int_of_string")
 
 #### 1.2.1. Effects are unchecked
 
-Unlike [Eff](http://www.eff-lang.org/), [Koka](https://github.com/koka-lang/koka),
-and other languages that support effect handlers, effects in Multicore OCaml are
-unchecked. A program that does not handle a performed effect fails with a
-runtime error.
+Unlike [Eff](http://www.eff-lang.org/),
+[Koka](https://github.com/koka-lang/koka),
+[Links](https://github.com/links-lang/links), and other languages that
+support effect handlers, effects in Multicore OCaml are unchecked. A
+program that does not handle a performed effect fails with a runtime
+error.
 
 Let's fire up the OCaml top-level:
 
