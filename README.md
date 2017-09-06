@@ -57,11 +57,11 @@ The tutorial is structured as follows:
 The tutorial also includes the following exercises:
 
 1. [Implement exceptions from effects ★★☆☆☆](#exercise-1-implement-exceptions-from-effects-)
-2. Implement state put and history ★☆☆☆☆   
-3. Derive generator for an arbitrary iterator ★★★★☆   
-4. Same fringe problem ★☆☆☆☆
-5. Implement async/await functionality ★★★☆☆
-6. Implement asynchronous accept and send ★☆☆☆☆
+2. [Implement state put and history ★☆☆☆☆](#exercise-2-implement-state-put-and-history-)
+3. [Derive generator for an arbitrary iterator ★★★★☆](#exercise-3-derive-generator-for-an-arbitrary-iterator-)
+4. [Same fringe problem ★☆☆☆☆](#exercise-4-same-fringe-problem-)
+5. [Implement async/await functionality ★★★☆☆](#exercise-5-implement-asyncawait-functionality-)
+6. [Implement asynchronous accept and send ★☆☆☆☆](#exercise-6-implement-asynchronous-accept-and-send-)
 
 ## 1. Algebraic Effects and Handlers
 
