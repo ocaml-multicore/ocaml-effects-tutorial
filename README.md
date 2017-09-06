@@ -56,6 +56,13 @@ The tutorial is structured as follows:
 
 The tutorial also includes the following exercises:
 
+1. [Implement exceptions from effects ★★☆☆☆](#exercise-1-implement-exceptions-from-effects-)
+2. Implement state put and history ★☆☆☆☆   
+3. Derive generator for an arbitrary iterator ★★★★☆   
+4. Same fringe problem ★☆☆☆☆
+5. Implement async/await functionality ★★★☆☆
+6. Implement asynchronous accept and send ★☆☆☆☆
+
 ## 1. Algebraic Effects and Handlers
 
 An algebraic effect handler is a programming abstraction for manipulating
@@ -749,7 +756,7 @@ val gl : int generator = <fun>
 - : float option = None
 ```
 
-#### 4.3.2. Exercise 4: Same fringe problem ★☆☆☆☆
+#### Exercise 4: Same fringe problem ★☆☆☆☆
 
 Two binary trees have the same fringe if they have exactly the same leaves
 reading from left to right. Given two binary trees decide whether they have the
