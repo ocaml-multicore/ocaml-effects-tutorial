@@ -1,23 +1,12 @@
-type bottom (* uninhabited type *)
-(** bottom type has no inhabitants. No value has this type. *)
+effect Exn : exn -> 'a
 
-type exn = bottom eff
-(** An exception is an effect that never returns *)
-
-effect Exn : bottom eff -> bottom
-
-let raise (e : exn) : 'a =
-  ignore (perform (Exn e)); assert false
+let raise (e : exn) : 'a = perform (Exn e)
 
 let try_with (f : unit -> 'a) (h : exn -> 'a) : 'a =
   try f () with
   | effect (Exn e) k -> h e
 
-effect Invalid_argument : bottom
-(* Invalid argument is an exception *)
-
-let _ : exn = Invalid_argument
-(* And it has type [exn] *)
+exception Invalid_argument
 
 (** [sqrt f] returns the square root of [f].
     @raise Invalid_argument if f < 0. *)

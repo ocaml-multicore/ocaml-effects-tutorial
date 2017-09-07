@@ -1,20 +1,10 @@
-type bottom (* uninhabited type *)
-(** bottom type has no inhabitants. No value has this type. *)
-
-type exn = bottom eff
-(** An exception is an effect that never returns *)
-
 let raise (e : exn) : 'a = failwith "not implemented"
-(* TODO *)
+(* Todo *)
 
 let try_with (f : unit -> 'a) (h : exn -> 'a) : 'a = failwith "not implemented"
-(* TODO *)
+(* Todo *)
 
-effect Invalid_argument : bottom
-(* Invalid argument is an exception *)
-
-let _ : exn = Invalid_argument
-(* And it has type [exn] *)
+exception Invalid_argument
 
 (** [sqrt f] returns the square root of [f].
     @raise Invalid_argument if f < 0. *)

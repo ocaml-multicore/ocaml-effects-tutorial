@@ -60,7 +60,7 @@ The tutorial is structured as follows:
 
 The tutorial also includes the following exercises:
 
-1. [Implement exceptions from effects ★★☆☆☆](#exercise-1-implement-exceptions-from-effects-)
+1. [Implement exceptions from effects ★☆☆☆☆](#exercise-1-implement-exceptions-from-effects-)
 2. [Implement state put and history ★☆☆☆☆](#exercise-2-implement-state-put-and-history-)
 3. [Derive generator for an arbitrary iterator ★★★★☆](#exercise-3-derive-generator-for-an-arbitrary-iterator-)
 4. [Same fringe problem ★☆☆☆☆](#exercise-4-same-fringe-problem-)
@@ -300,7 +300,7 @@ Exception: Unhandled.
 - : string = "done"
 ```
 
-### Exercise 1: Implement exceptions from effects ★★☆☆☆
+### Exercise 1: Implement exceptions from effects ★☆☆☆☆
 
 As mentioned before, effects generalise exceptions. Exceptions handlers are
 effect handlers that ignore the continuation. Your task is to implement
