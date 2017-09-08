@@ -41,7 +41,10 @@ module Scheduler : Scheduler = struct
       fun pr main ->
         match main () with
         | v ->
-            let l = match !pr with Waiting l -> l | _ -> failwith "impossible" in
+            let l = match !pr with
+              | Waiting l -> l
+              | _ -> failwith "impossible"
+            in
             List.iter (fun k -> enqueue (fun () -> continue k v)) l;
             pr := Done v;
             dequeue ()

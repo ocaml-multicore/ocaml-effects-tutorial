@@ -93,7 +93,8 @@ module Aio : Aio = struct
                 enqueue (fun () -> continue k (Unix.recv fd buf pos len mode))
             | Blocked _ -> failwith "impossible"
             end;
-            Hashtbl.remove ht x
+            Hashtbl.remove ht x;
+            resume ht xs
       in
       resume br rdy_rd_fds;
       resume br rdy_wr_fds;
