@@ -1,6 +1,6 @@
 # Concurrent Programming with Effect Handlers 
 
-Materials for the [CUFP 17 tutorial](cufp.org/2017/c3-daniel-hillerstrom-kc-concurrent-programming-with-effect-handlers.html).
+Materials for the [CUFP 17 tutorial](http://cufp.org/2017/c3-daniel-hillerstrom-kc-concurrent-programming-with-effect-handlers.html).
 
 ## Setting up
 
