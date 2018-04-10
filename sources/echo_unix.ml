@@ -1,5 +1,5 @@
 module M = Echo.Make(struct
-  let accept = Unix.accept
+  let accept fd = Unix.accept fd
   let recv = Unix.recv
   let send = Unix.send
   let fork f = f ()

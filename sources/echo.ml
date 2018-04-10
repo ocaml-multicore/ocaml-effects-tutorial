@@ -35,7 +35,7 @@ module Make (Aio : sig
   (* Are the sockets non-blocking *)
 end) = struct
   let send sock str =
-    let len = String.length str in
+    let len = Bytes.length str in
     let total = ref 0 in
     (try
         while !total < len do
@@ -52,7 +52,7 @@ end) = struct
       try Aio.recv sock str 0 maxlen []
       with _ -> 0
     in
-    String.sub str 0 recvlen
+    Bytes.sub str 0 recvlen
 
   let close sock =
     try Unix.shutdown sock Unix.SHUTDOWN_ALL
@@ -68,8 +68,8 @@ end) = struct
   let rec echo_server sock addr =
     try
       let data = recv sock 1024 in
-      if String.length data > 0 then
-        (ignore (send sock ("server says: " ^ data));
+      if Bytes.length data > 0 then
+        (ignore (send sock (Bytes.cat (Bytes.of_string ("server says: ")) data));
         echo_server sock addr)
       else
         let cn = string_of_sockaddr addr in
