@@ -19,8 +19,10 @@ recommended that you install it via the [OCaml Package Manager
 (OPAM)](https://opam.ocaml.org/), i.e.
 
 ```bash
-$ opam remote add multicore https://github.com/ocamllabs/multicore-opam.git
-$ opam switch 4.02.2+multicore
+$ opam repository add multicore https://github.com/ocamllabs/multicore-opam.git
+$ opam switch create 4.06.1+multicore --empty
+$ opam switch 4.06.1+multicore
+$ opam install ocaml-variants.4.06.1+multicore
 ```
 
 Clone this repository in order to obtain a local copy of the code stubs, and
