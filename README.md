@@ -6,36 +6,7 @@ Materials for the [CUFP 17 tutorial](http://cufp.org/2017/c3-daniel-hillerstrom-
 
 ## Setting up
 
-### Windows
-
-If you are on a Windows machine, it is best to grab the [virtual box
-image](https://drive.google.com/open?id=0BymJ9X3Wgp6hSGNBVDVXbXA2UTg) with
-Multicore OCaml already setup.
-
-### Linux & MacOS
-
-First you will need a local installation of the Multicore OCaml compiler. It is
-recommended that you install it via the [OCaml Package Manager
-(OPAM)](https://opam.ocaml.org/), i.e.
-
-```bash
-$ opam remote add multicore https://github.com/ocamllabs/multicore-opam.git
-$ opam switch 4.02.2+multicore
-```
-
-Clone this repository in order to obtain a local copy of the code stubs, and
-thereafter navigate to the exercise directory:
-
-```bash
-$ git clone https://github.com/ocamllabs/ocaml-effects-tutorial.git
-$ cd ocaml-effects-tutorial
-```
-
-### Codesigning GDB on MacOS
-
-The debugging part of the tutorial requires GDB support. MacOS requires special
-permissions for running GDB. See
-https://gcc.gnu.org/onlinedocs/gcc-4.9.0/gnat_ugn_unw/Codesigning-the-Debugger.html.
+Install the Multicore OCaml compiler [using opam](https://github.com/ocaml-multicore/multicore-opam#install-multicore-ocaml)
 
 ## Outline
 
