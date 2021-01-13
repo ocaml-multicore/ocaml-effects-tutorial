@@ -6,7 +6,7 @@ Materials for the [CUFP 17 tutorial](http://cufp.org/2017/c3-daniel-hillerstrom-
 
 ## Setting up
 
-Install the Multicore OCaml compiler [using opam](https://github.com/ocaml-multicore/multicore-opam#install-multicore-ocaml)
+Install the Multicore OCaml compiler [using opam](https://github.com/ocaml-multicore/multicore-opam#install-multicore-ocaml).
 
 ## Outline
 
