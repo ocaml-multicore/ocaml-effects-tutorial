@@ -48,8 +48,8 @@ as exceptions, generators, asynchronous I/O, or concurrency, as well as other
 seemingly esoteric programming abstractions such as transactional memory and
 probabilistic computations. 
 
-It might be difficult to pin point what an effect handler exactly is and what it
-can do. In this tutorial, we shall introduce gently algebraic effect and
+Operationally, effect handlers offer a form of first-class, restartable exception 
+mechanism. In this tutorial, we shall introduce gently algebraic effect and
 handlers with gentle examples and then continue on to more involved examples. 
 
 ### 1.1. Recovering from errors
@@ -251,9 +251,9 @@ Fatal error: exception Failure("int_of_string")
 Unlike [Eff](http://www.eff-lang.org/),
 [Koka](https://github.com/koka-lang/koka),
 [Links](https://github.com/links-lang/links), and other languages that
-support effect handlers, effects in Multicore OCaml are unchecked. A
-program that does not handle a performed effect fails with a runtime
-error.
+support effect handlers, effects in Multicore OCaml are unchecked 
+currently. A program that does not handle a performed effect fails 
+with a runtime error.
 
 Let's fire up the OCaml top-level:
 
@@ -272,6 +272,10 @@ Exception: Unhandled.
   | effect E k -> continue k ();;            (* effect case *)
 - : string = "done"
 ```
+
+An effect system for OCaml 
+[is in development](https://www.youtube.com/watch?t=2035&v=z8SI7WBtlcA&feature=youtu.be). 
+When effect handlers land in upstream OCaml, they will be equipped with an effect system.
 
 ### Exercise 1: Implement exceptions from effects ★☆☆☆☆
 
