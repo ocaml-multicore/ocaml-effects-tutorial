@@ -4,21 +4,13 @@ type 'elt generator = unit -> 'elt option
 
 let generate (type elt) (i : (elt, 'container) iterator) (c : 'container) : elt generator =
   let open Effect in
-  let open Effect.Deep in
-  let module M = struct type _ Effect.t += Yield : elt -> unit Effect.t end in
-  let open M in
-  let yield v = perform (Yield v) in
-  let result = ref [] in
-  let helper () =
-    try_with (i yield) c
-    { effc = (fun (type b) (eff: b Effect.t) ->
-        match eff with
-        | Yield x -> Some (fun (k: (b,_) continuation) ->
-                result := (x::!result)
-                )
-        | _ -> None)};
+  let module M = struct
+      type _ Effect.t +=
+          Yield : elt -> unit Effect.t
+    end
   in
-  helper
+  let open M in
+  failwith "Not implemented"
 
 (***********************)
 (* Traversal generator *)
