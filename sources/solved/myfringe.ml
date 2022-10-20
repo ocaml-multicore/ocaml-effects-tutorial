@@ -9,6 +9,7 @@
 type ('elt,'cont) iterator = ('elt -> unit) -> 'cont -> unit
 
 type 'elt generator = unit -> 'elt option
+
 let generate (type elt) (i : (elt, 'container) iterator) (c : 'container) : elt generator =
   let open Effect in
   let open Effect.Shallow in
@@ -51,21 +52,23 @@ type 'a tree =
 | Leaf of 'a
 | Node of 'a tree * 'a tree
 
-let rec iter f = function
-  | Leaf v -> f v
-  | Node (l,r) -> iter f l; iter f r
+let rec tree_iter f x =
+    match x with
+    | Leaf v -> f v
+    | Node (left, right) -> tree_iter f left; tree_iter f right
 
 let same_fringe t1 t2 =
-  let gen_tree = generate iter in
-  let g1 = gen_tree t1 in
-  let g2 = gen_tree t2 in
-  let rec loop () =
-    match g1 (), g2 () with
-    | None, None -> true
-    | Some v1, Some v2 when v1 = v2 -> loop ()
-    | _ -> false
-  in
-  loop ()
+    let t1g = generate tree_iter t1 in
+    let t2g = generate tree_iter t2 in
+    let rec check () =
+        let x = t1g () in
+        let y = t2g () in
+        match (x,y) with
+        | (Some a, Some b) -> a == b && check ()
+        | (None,None) -> true
+        | _ -> false
+    in
+    check ()
 
 let t1 = Node (Leaf 1, Node (Leaf 2, Leaf 3))
 let t2 = Node (Node (Leaf 1, Leaf 2), Leaf 3)

@@ -10,19 +10,43 @@ type ('elt,'cont) iterator = ('elt -> unit) -> 'cont -> unit
 
 type 'elt generator = unit -> 'elt option
 
-let generate (type elt) (i : (elt, 'cont) iterator) (c : 'cont) : elt generator =
-  let module M = struct effect Yield : elt -> unit end in
+let generate (type elt) (i : (elt, 'container) iterator) (c : 'container) : elt generator =
+  let open Effect in
+  let open Effect.Shallow in
+  let module M = struct
+      type _ Effect.t +=
+          Yield : elt -> unit Effect.t
+
+      type ('a, 'b) status =
+        NotStarted
+        | InProgress of ('a,'b) continuation
+        | Finished
+    end
+  in
   let open M in
-  let rec step = ref (fun () ->
-    i (fun v -> perform (Yield v)) c;
-    step := (fun () -> None);
-    None)
+  let yield v = perform (Yield v) in
+  let curr_status = ref NotStarted in
+  let rec helper () =
+    match !curr_status with
+    | Finished -> None
+    | NotStarted ->
+            curr_status := InProgress (fiber (fun () -> i yield c));
+            helper ()
+    | InProgress k ->
+        continue_with k ()
+        { retc = (fun _ ->
+                    curr_status := Finished;
+                    helper ());
+          exnc = (fun e -> raise e);
+          effc = (fun (type b) (eff: b Effect.t) ->
+              match eff with
+              | Yield x -> Some (fun (k: (b,_) continuation) ->
+                      curr_status := InProgress k;
+                      Some x
+                      )
+              | _ -> None)}
   in
-  let loop () =
-    try !step () with
-    | effect (Yield v) k -> (step := continue k; Some v)
-  in
-  loop
+  helper
 
 type 'a tree =
 | Leaf of 'a
