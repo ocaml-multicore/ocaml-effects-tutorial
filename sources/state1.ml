@@ -1,4 +1,6 @@
 open Printf
+open Effect
+open Effect.Shallow
 
 module type STATE = sig
   type t
@@ -10,15 +12,24 @@ module State (S : sig type t end) : STATE with type t = S.t = struct
 
   type t = S.t
 
-  effect Get : t
+  type _ Effect.t += Get : t Effect.t
+
   let get () = perform Get
 
   let run f ~init =
-    let comp =
-      match f () with
-      | () -> (fun s -> ())
-      | effect Get k -> (fun (s : t) -> (continue k s) s)
-    in comp init
+    let rec loop : type a r. t -> (a, r) continuation -> a -> r =
+      fun state k x ->
+        continue_with k x
+        { retc = (fun result -> result);
+          exnc = (fun e -> raise e);
+          effc = (fun (type b) (eff: b Effect.t) ->
+            match eff with
+            | Get -> Some (fun (k: (b,r) continuation) ->
+                    loop state k state)
+            | _ -> None)
+        }
+    in
+    loop init (fiber f) ()
 end
 
 module IS = State (struct type t = int end)
@@ -31,4 +42,4 @@ let foo () : unit =
   printf "%s\n" (SS.get ());
   printf "%s\n" (SS.get ())
 
-let _ = IS.run (fun () -> SS.run foo "forty two") 42
+let _ = IS.run (fun () -> SS.run foo ~init:"forty two") ~init:42

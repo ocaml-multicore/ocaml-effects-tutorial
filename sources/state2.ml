@@ -1,4 +1,6 @@
 open Printf
+open Effect
+open Effect.Shallow
 
 module type STATE = sig
   type t
@@ -12,7 +14,8 @@ module State (S : sig type t end) : STATE with type t = S.t = struct
 
   type t = S.t
 
-  effect Get : t
+  type _ Effect.t += Get : t Effect.t
+
   let get () = perform Get
 
   let put v = failwith "not implemented"
@@ -20,12 +23,20 @@ module State (S : sig type t end) : STATE with type t = S.t = struct
   let history () = failwith "not implemented"
 
   let run f ~init =
-    let comp : (t * t list) -> unit =
-      match f () with
-      | () -> (fun _ -> ())
-      | effect Get k -> (fun _ -> failwith "not implemented")
-(*    | effect ... *)
-    in comp (init, [])
+
+    let rec loop : type a r. t -> (a, r) continuation -> a -> r =
+      fun state k x ->
+        continue_with k x
+        { retc = (fun result -> result);
+          exnc = (fun e -> raise e);
+          effc = (fun (type b) (eff: b Effect.t) ->
+            match eff with
+            | Get -> Some (fun (k: (b,r) continuation) ->
+                    failwith "not implemented")
+            | _ -> None)
+        }
+    in
+    loop init (fiber f) ()
 end
 
 module IS = State (struct type t = int end)
@@ -43,4 +54,4 @@ let foo () : unit =
   assert ("world" = SS.get ());
   assert ([42; 21] = IS.history ())
 
-let _ = IS.run (fun () -> SS.run foo "") 0
+let _ = IS.run (fun () -> SS.run foo ~init:"") ~init:0

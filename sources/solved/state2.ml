@@ -1,4 +1,6 @@
 open Printf
+open Effect
+open Effect.Shallow
 
 module type STATE = sig
   type t
@@ -12,23 +14,42 @@ module State (S : sig type t end) : STATE with type t = S.t = struct
 
   type t = S.t
 
-  effect Get : t
+  type _ Effect.t += Get : t Effect.t
+                   | Put : t -> unit Effect.t
+                   | History : t list Effect.t
+
   let get () = perform Get
 
-  effect Put : t -> unit
   let put v = perform (Put v)
 
-  effect History : t list
   let history () = perform History
 
   let run f ~init =
-    let comp : (t * t list) -> unit =
-      match f () with
-      | () -> (fun _ -> ())
-      | effect Get k -> (fun (s,h) -> continue k s (s,h))
-      | effect (Put s) k -> (fun (_,h) -> continue k () (s,s::h))
-      | effect History k -> (fun (s,h) -> continue k (List.rev h) (s,h))
-    in comp (init, [])
+    let rec loop : type a r. t -> t list -> (a, r) continuation -> a -> r =
+      fun init state k x ->
+        continue_with k x
+        { retc = (fun result -> result);
+          exnc = (fun e -> raise e);
+          effc = (fun (type b) (eff: b Effect.t) ->
+            match eff with
+            | Get -> Some (fun (k: (b,r) continuation) ->
+
+                    loop init state k (match state with
+                                        | [] -> init
+                                        | _ -> List.hd state
+                    ))
+            | Put v -> Some (fun (k: (b,r) continuation) ->
+                    let new_state = v::state in
+                    loop init new_state k ())
+            | History -> Some (fun (k: (b,r) continuation) ->
+                    (* Most recent value is stored at head 
+                     * of list, so reverse it to get history in proper order *)
+                    let result = List.rev state in
+                    loop init state k result)
+            | _ -> None)
+        }
+    in
+    loop init [] (fiber f) ()
 end
 
 module IS = State (struct type t = int end)
@@ -44,6 +65,9 @@ let foo () : unit =
   assert ("hello" = SS.get ());
   SS.put "world";
   assert ("world" = SS.get ());
-  assert ([42; 21] = IS.history ())
+  assert ([42; 21] = IS.history ());
+  IS.put 86;
+  assert (86 = IS.get ());
+  assert ([42;21;86] = IS.history ())
 
-let _ = IS.run (fun () -> SS.run foo "") 0
+let _ = IS.run (fun () -> SS.run foo ~init:"") ~init:0
