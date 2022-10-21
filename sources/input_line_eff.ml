@@ -28,5 +28,5 @@ let _ =
         | e -> raise e
     );
     (* Shouldn't reach here, means sum_up returned a value *)
-    retc = fun v -> v
+    retc = fun _ -> failwith "Impossible?" 
   }

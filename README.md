@@ -172,9 +172,9 @@ let _ =
   Printf.printf "Starting up. Please input:\n%!";
   let r = ref 0 in
   match_with sum_up r
-  { effc = (fun (type a) (e: a Effect.t) ->
-      match e with
-      | Conversion_failure s -> Some (fun (k: (a,_) continuation) ->
+  { effc = (fun (type c) (eff: c Effect.t) ->
+      match eff with
+      | Conversion_failure s -> Some (fun (k: (c,_) continuation) ->
               Printf.fprintf stderr "Conversion failure \"%s\"\n%!" s;
               continue k 0)
       | _ -> None
@@ -184,9 +184,8 @@ let _ =
         | e -> raise e
     );
     (* Shouldn't reach here, means sum_up returned a value *)
-    retc = fun v -> v
+    retc = fun _ -> failwith "Impossible?" 
   }
-
 ```
 
 First, lets run this program:
@@ -221,25 +220,82 @@ Just like exceptions, effects are values. The type of `Conversion_failure
 We perform the effect with `perform : 'a Effect.t -> 'a` primitive (c.f. `raise :
 exn -> 'a (* bottom *)`). 
 
-Effect handlers are similar to exception handlers:
+Effect handlers are defined in the modules `Effect.Deep` and `Effect.Shallow`. We'll discuss the differences between the two later. (TODO THOMAS)
 
 ```ocaml
-try sum_up r with
-| End_of_file -> Printf.printf "Sum is %d\n" !r
-| effect (Conversion_failure s) k ->
-    Printf.fprintf stderr "Conversion failure \"%s\"\n%!" s;
-    continue k 0
+module Deep : sig
+  (** Some contents omitted *)
+  type ('a,'b) handler =
+    { retc: 'a -> 'b;
+      exnc: exn -> 'b;
+      effc: 'c.'c t -> (('c,'b) continuation -> 'b) option }
+  (** [('a,'b) handler] is a handler record with three fields -- [retc]
+      is the value handler, [exnc] handles exceptions, and [effc] handles the
+      effects performed by the computation enclosed by the handler. *)
+
+  val match_with: ('c -> 'a) -> 'c -> ('a,'b) handler -> 'b
+  (** [match_with f v h] runs the computation [f v] in the handler [h]. *)
+
+  type 'a effect_handler =
+    { effc: 'b. 'b t -> (('b, 'a) continuation -> 'a) option }
+  (** ['a effect_handler] is a deep handler with an identity value handler
+      [fun x -> x] and an exception handler that raises any exception
+      [fun e -> raise e]. *)
+
+  val try_with: ('b -> 'a) -> 'b -> 'a effect_handler -> 'a
+  (** [try_with f v h] runs the computation [f v] under the handler [h]. *)
+end
+
+module Shallow : sig
+  (** Some contents omitted *)
+  type ('a,'b) handler =
+    { retc: 'a -> 'b;
+      exnc: exn -> 'b;
+      effc: 'c.'c t -> (('c,'a) continuation -> 'b) option }
+  (** [('a,'b) handler] is a handler record with three fields -- [retc]
+      is the value handler, [exnc] handles exceptions, and [effc] handles the
+      effects performed by the computation enclosed by the handler. *)
+
+  val continue_with : ('c,'a) continuation -> 'c -> ('a,'b) handler -> 'b
+  (** [continue_with k v h] resumes the continuation [k] with value [v] with
+      the handler [h].
+      @raise Continuation_already_resumed if the continuation has already been
+      resumed.
+   *)
 ```
 
-but has an additional parameter `k`, which is the *delimited continuation*
+The handlers are records with three fields and are called in the context of `match_with`, `try_with`, or `continue_with`:
+
+`retc` is the function that is called when the computation returns a value - i.e. no effects or exceptions were performed/raised in the computation. The function has one parameter: the value of the computation
+
+`exnc` is called when the computation throws an exception. It takes the exception as a parameter.
+
+`effc` is the function that handles the effects. It has type `'c. 'c Effect.t -> ('c, 'a) continuation -> 'b) option`
+
+Since effect handlers can return values to where the effect was performed, `effc` has to be generic over all possible types, hence the `'c` existential type. `effc` returns an `option` where a None value means ignore the effect (and crash the program if not handled somewhere else). A Some value holds a function that takes a parameter `k`
+
+```ocaml
+  { effc = (fun (type c) (eff: c Effect.t) ->
+      match eff with
+      | Conversion_failure s -> Some (fun (k: (c,_) continuation) ->
+              Printf.fprintf stderr "Conversion failure \"%s\"\n%!" s;
+              continue k 0)
+      | _ -> None
+    )
+   }
+```
+
+We need to declare a [locally abstract type](https://kcsrk.info/webman/manual/locallyabstract.html) `c` in order to tell the compiler that `eff` and `k` are constrained on the same type.
+
+The parameter `k`, is the *delimited continuation*
 between the point of performing the effect and the effect handler. The delimited
 continuation is like a dynamically defined function, that can be called and
 returns a value. The type of `k` in this case is `(int, int) continuation`,
 which says that the continuation expects an integer to continue (the first type
 parameter), and returns with an integer (the second type parameter). 
 
-The delimited continuation is resumed with `continue : ('a,'b) continuation ->
-'a -> 'b` primitive. In this example, `continue k 0` resumes the continuation
+The delimited continuation is resumed with `Effect.Deep`'s `continue : ('a,'b) continuation ->
+'a -> 'b`. In this example, `continue k 0` resumes the continuation
 with `0`, and the corresponding `perform (Conversion_failure l)` returns with
 `0`.
 
@@ -248,11 +304,21 @@ then we can `discontinue : ('a,'b) continuation -> exn -> 'b` the continuation
 so that it raises an exception at the perform point. 
 
 ```ocaml
-  try sum_up r with
-  | End_of_file -> Printf.printf "Sum is %d\n" !r
-  | effect (Conversion_failure s) k ->
-      Printf.fprintf stderr "Conversion failure \"%s\"\n%!" s;
-      discontinue k (Failure "int_of_string")
+  match_with sum_up r
+  { effc = (fun (type a) (e: a t) ->
+      match e with
+      | Conversion_failure s -> Some (fun (k: (a,_) continuation) ->
+          Printf.fprintf stderr "Conversion failure \"%s\"\n%!" s;
+          discontinue k (Failure "int_of_string"))
+      | _ -> None
+    );
+    exnc = (function
+        | End_of_file -> Printf.printf "Sum is %d\n" !r
+        | e -> raise e
+    );
+    (* Shouldn't reach here, means sum_up returned a value *)
+    retc = fun v -> v
+  }
 ```
 
 Now,
