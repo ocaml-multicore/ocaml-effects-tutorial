@@ -48,20 +48,20 @@ module Scheduler : Scheduler = struct
           exnc = raise;
           effc = (fun (type b) (eff: b Effect.t) ->
               match eff with
-              | Async f -> (Some (fun k -> 
+              | Async f -> (Some (fun (k: (b,_) continuation) -> 
                       failwith "Async not implemented"
               ))
               | Yield -> (Some (fun k ->
                       enqueue (continue k);
                       dequeue ()
               ))
-              | Await p -> (Some (fun k ->
+              | Await p -> (Some (fun (k: (b,_) continuation) ->
                 begin match !p with
                 | Done v -> continue k v
                 | Waiting l -> failwith "Await.Waiting not implemented"
                 end
               ))
-
+              | _ -> None
           )}
     in
     fork (ref (Waiting [])) main

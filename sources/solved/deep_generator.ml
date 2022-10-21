@@ -2,23 +2,8 @@ type ('elt,'container) iterator = ('elt -> unit) -> 'container -> unit
 
 type 'elt generator = unit -> 'elt option
 
-(* Original solution *)
-(* let generate (type elt) (i : (elt, 'container) iterator) (c : 'container) : elt generator = *)
-(*   let module M = struct effect Yield : elt -> unit end in *)
-(*   let open M in *)
-(*   let rec step = ref (fun () -> *)
-(*     i (fun v -> perform (Yield v)) c; *)
-(*     step := (fun () -> None); *)
-(*     None) *)
-(*   in *)
-(*   let loop () = *)
-(*     try !step () with *)
-(*     | effect (Yield v) k -> (step := continue k; Some v) *)
-(*   in *)
-(*   loop *)
-
-(* My solution *)
-(* Might be able to do something with a deep handler instead *)
+(* An alternate solution using
+ * Effect.Deep handlers instead of Effect.Shallow *)
 let generate (type elt) (i : (elt, 'container) iterator) (c : 'container) : elt generator =
   let open Effect in
   let open Effect.Deep in
@@ -47,14 +32,6 @@ let generate (type elt) (i : (elt, 'container) iterator) (c : 'container) : elt 
   in
   helper
 
-(*
- * helper : unit -> elt option
- * i : (elt -> unit) -> container -> unit
- * continue_with k ()
- * {
-   
- *
- * *)
 
 (***********************)
 (* Traversal generator *)
