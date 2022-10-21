@@ -1,7 +1,7 @@
 open Effect
 open Effect.Deep
 
-type _ t += Conversion_failure : string -> int t
+type _ Effect.t += Conversion_failure : string -> int Effect.t
 
 let int_of_string l =
   try int_of_string l with
@@ -16,7 +16,7 @@ let _ =
   Printf.printf "Starting up. Please input:\n%!";
   let r = ref 0 in
   match_with sum_up r
-  { effc = (fun (type a) (e: a t) ->
+  { effc = (fun (type a) (e: a Effect.t) ->
       match e with
       | Conversion_failure s -> Some (fun (k: (a,_) continuation) ->
               Printf.fprintf stderr "Conversion failure \"%s\"\n%!" s;

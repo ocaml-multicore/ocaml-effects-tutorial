@@ -1,15 +1,14 @@
 # Concurrent Programming with Effect Handlers 
+<!-- [![Build Status](https://travis-ci.org/ocamllabs/ocaml-effects-tutorial.svg?branch=master)](https://travis-ci.org/ocamllabs/ocaml-effects-tutorial)    -->
 
-[![Build Status](https://travis-ci.org/ocamllabs/ocaml-effects-tutorial.svg?branch=master)](https://travis-ci.org/ocamllabs/ocaml-effects-tutorial)   
-
-Materials for the [CUFP 17 tutorial](http://cufp.org/2017/c3-daniel-hillerstrom-kc-concurrent-programming-with-effect-handlers.html).
+Originally written as materials for the [CUFP 17 tutorial](http://cufp.org/2017/c3-daniel-hillerstrom-kc-concurrent-programming-with-effect-handlers.html).
 
 ## Setting up
 
 Install a compatible OCaml compiler
 
-```
-    opam switch create 5.0.0~beta1
+```bash
+opam switch create 5.0.0~beta1
 ```
 
 ## Outline
@@ -155,7 +154,10 @@ Algebraic effect handlers allow you to recover from errors. The following code
 is available in `sources/input_line_eff.ml`
 
 ```ocaml
-effect Conversion_failure : string -> int
+open Effect
+open Effect.Deep
+
+type _ Effect.t += Conversion_failure : string -> int Effect.t
 
 let int_of_string l =
   try int_of_string l with
@@ -167,12 +169,24 @@ let rec sum_up acc =
     sum_up acc
 
 let _ =
+  Printf.printf "Starting up. Please input:\n%!";
   let r = ref 0 in
-  try sum_up r with
-  | End_of_file -> Printf.printf "Sum is %d\n" !r
-  | effect (Conversion_failure s) k ->
-      Printf.fprintf stderr "Conversion failure \"%s\"\n%!" s;
-      continue k 0
+  match_with sum_up r
+  { effc = (fun (type a) (e: a Effect.t) ->
+      match e with
+      | Conversion_failure s -> Some (fun (k: (a,_) continuation) ->
+              Printf.fprintf stderr "Conversion failure \"%s\"\n%!" s;
+              continue k 0)
+      | _ -> None
+    );
+    exnc = (function
+        | End_of_file -> Printf.printf "Sum is %d\n" !r
+        | e -> raise e
+    );
+    (* Shouldn't reach here, means sum_up returned a value *)
+    retc = fun v -> v
+  }
+
 ```
 
 First, lets run this program:
@@ -192,17 +206,19 @@ We've recovered from the conversion error and kept going. Algebraic effects and
 handlers are similar to exceptions in that we can declare new effects:
 
 ```ocaml
-effect Conversion_failure : string -> int
+type _ Effect.t += Conversion_failure : string -> int Effect.t
 (* c.f. [exception Conversion_failure of string] *)
 ```
+
+Effects are declared by adding constructors to an [extensible variant type](https://kcsrk.info/webman/manual/extensiblevariants.html) defined in the `Effect` module.
 
 Unlike exceptions, performing an effect returns a value. The declaration here
 says that `Conversion_failure` is an algebraic effect that takes a string
 parameter, which when performed, returns an integer. 
 
 Just like exceptions, effects are values. The type of `Conversion_failure
-"MMXVII"` is `int effect`, where `int` is the result of performing the effect.
-We perform the effect with `perform : 'a eff -> 'a` primitive (c.f. `raise :
+"MMXVII"` is `int Effect.t`, where `int` is the result of performing the effect.
+We perform the effect with `perform : 'a Effect.t -> 'a` primitive (c.f. `raise :
 exn -> 'a (* bottom *)`). 
 
 Effect handlers are similar to exception handlers:
