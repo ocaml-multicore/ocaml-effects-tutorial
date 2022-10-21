@@ -1,10 +1,16 @@
-effect Exn : exn -> 'a
+open Effect
 
+type _ Effect.t += Exn : exn -> 'a Effect.t
 let raise (e : exn) : 'a = perform (Exn e)
 
-let try_with (f : unit -> 'a) (h : exn -> 'a) : 'a =
-  try f () with
-  | effect (Exn e) k -> h e
+let try_with (f : unit -> 'a) (h : exn -> 'a) : 'a =    let open Effect.Deep in
+    try_with f ()
+    { effc = (fun (type b) (eff: b Effect.t) ->
+        match eff with
+        | Exn e -> Some (fun (k: (b,_) continuation) -> h e)
+        | _ -> None
+    )}
+
 
 exception Invalid_argument
 
@@ -20,7 +26,9 @@ let _ =
     Printf.printf "%f\n%!" r;
     let r = sqrt (-1.0) in
     Printf.printf "%f\n" r)
-  (fun Invalid_argument -> Printf.printf "Invalid_argument to sqrt\n")
+  (function
+    | Invalid_argument -> Printf.printf "Invalid_argument to sqrt\n"
+    | _ -> ())
 
 (* Prints:
    6.513064
