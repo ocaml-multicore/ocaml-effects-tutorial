@@ -272,7 +272,7 @@ The handlers are records with three fields and are called in the context of `mat
 
 `effc` is the function that handles the effects. It has type `'c. 'c Effect.t -> ('c, 'a) continuation -> 'b) option`
 
-Since effect handlers can return values to where the effect was performed, `effc` has to be generic over all possible types, hence the `'c` existential type. `effc` returns an `option` where a None value means ignore the effect (and crash the program if not handled somewhere else). A Some value holds a function that takes a parameter `k`
+Effects are strongly typed, but the handler function can handle multiple effects and has to be generic over every possible type (which is potentially all of them since the effects variant can always be extended further), hence the `'c` existential type. `effc` returns an `option` where a None value means ignore the effect (and crash the program if not handled somewhere else). A Some value holds a function that takes a parameter commonly called `k`
 
 ```ocaml
   { effc = (fun (type c) (eff: c Effect.t) ->
