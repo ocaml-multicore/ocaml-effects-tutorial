@@ -11,6 +11,13 @@ Install a compatible OCaml compiler
 opam switch create 5.0.0~beta1
 ```
 
+Install required tools
+
+```bash
+opam install ocamlbuild ocamlfind
+```
+
+
 ## Outline
 
 The tutorial is structured as follows:
