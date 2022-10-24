@@ -18,7 +18,7 @@ The tutorial is structured as follows:
 1. [Algebraic Effects and Handlers.](#1-algebraic-effects-and-handlers)  
   1.1. [Recovering from errors](#11-recovering-from-errors)  
   1.2. [Basics](#12-basics)   
-2. [Effectful Computations in a Pure Setting.](#2-effectful-computations-in-a-pure-setting)    
+2. [Shallow and Deep Handlers.](#2-shallow-and-deep-handlers)    
 3. [Delimited Continuations: A deep dive.](#3-delimited-continuations-a-deep-dive)  
   3.1. [Examining effect handlers through GDB](#31-examining-effect-handlers-through-gdb)  
 4. [Generators & Streams.](#4-general-control-flow-abstractions-generators--streams)  
@@ -379,13 +379,16 @@ As mentioned before, effects generalise exceptions. Exceptions handlers are
 effect handlers that ignore the continuation. Your task is to implement
 exceptions in terms of effects. The source file is `sources/exceptions.ml`.
 
-## 2. Effectful Computations in a Pure Setting
+## 2. Shallow vs Deep Handlers
 
-Algebraic effects and handlers emulate effects in a pure setting. Let us
-implement ambient state. The implementation is available in `sources/state1.ml`.
+The OCaml standard library provides two different modules for handling effects: `Effect.Deep` and `Effect.Shallow`. When a deep handler returns a continuation, the continuation also includes the handler. This means that, when the continuation is resumed, the effect handler is automatically re-installed, and will handle the effect(s) that the computation may perform in the future.
+
+Shallow handlers on the other hand, allow us to change the handlers every time an effect is performed. Let's use them to implement state without refs. The implementation is available in `sources/state1.ml`.
 
 ```ocaml
 open Printf
+open Effect
+open Effect.Shallow
 
 module type STATE = sig
   type t
@@ -397,28 +400,31 @@ module State (S : sig type t end) : STATE with type t = S.t = struct
 
   type t = S.t
 
-  effect Get : t
+  type _ Effect.t += Get : t Effect.t
+
   let get () = perform Get
 
   let run f ~init =
-    let comp =
-      match f () with
-      | () -> (fun s -> ())
-      | effect Get k -> (fun (s : t) -> continue k s s)
-    in comp init
+    let rec loop : type a r. t -> (a, r) continuation -> a -> r =
+      fun state k x ->
+        continue_with k x
+        { retc = (fun result -> result);
+          exnc = (fun e -> raise e);
+          effc = (fun (type b) (eff: b Effect.t) ->
+            match eff with
+            | Get -> Some (fun (k: (b,r) continuation) ->
+                    loop state k state)
+            | _ -> None)
+        }
+    in
+    loop init (fiber f) ()
 end
 ```
 
-If you are familiar with state monad, the implementation idea is very similar.
-In general, algebraic effect handlers and monads have a lot in common. In fact,
-a popular way of implementing algebraic effects is through [free monadic
-interpretation](http://www.haskellforall.com/2012/06/you-could-have-invented-free-monads.html). 
+We use `Effect.Shallow` by wrapping calculations with `continue_with : ('c,'a) continuation -> 'c -> ('a,'b) handler -> 'b` and getting an initial continuation with `val fiber : ('a -> 'b) -> ('a, 'b) continuation`
 
-Coming back to the program at hand, we define an effect `Get` that returns a
-value of type `t` when performed. The actual interpreter simply threads the
-ambient state through the computation. The operation `Get` is interpreted as
-continuing with `s` (the second argument to continue). `run` function runs the
-interpreter with the given initial state.
+In this example, we define an effect `Get` that returns a
+value of type `t` when performed. 
 
 ```ocaml
 module IS = State (struct type t = int end)
@@ -453,6 +459,8 @@ Your task it to implement `put : t -> unit` that updates the state and `history
 The source file is `sources/state2.ml`.
 
 ## 3. Delimited Continuations: A deep dive
+
+**EDITOR'S NOTE: The implementation has changed since this section was written. Results in gdb will differ, but the concepts of the implementation remain mostly the same.**
 
 Algebraic effect handlers in Multicore OCaml are very efficient due to several
 choices we make in their implementation. Understanding the implementation of
@@ -523,8 +531,11 @@ userland code and the kernel is not involved.
 The file `sources/gdb.ml`:
 
 ```ocaml
-effect Peek : int
-effect Poke : unit
+open Effect
+open Effect.Deep
+
+type _ Effect.t += Peek : int Effect.t
+                 | Poke : unit Effect.t
 
 let rec a i = perform Peek + Random.int i
 let rec b i = a i + Random.int i
@@ -532,18 +543,25 @@ let rec c i = b i + Random.int i
 
 let rec d i =
   Random.int i +
-  match c i with
-  | v -> v
-  | effect Poke k -> continue k ()
+  try_with c i
+  { effc = fun (type a) (e: a t) ->
+      match e with
+      | Poke -> Some (fun (k: (a,_) continuation) -> continue k ())
+      | _ -> None
+  }
 
 let rec e i =
   Random.int i +
-  match d i with
-  | v -> v
-  | effect Peek k ->
-      Printexc.(print_raw_backtrace stdout (get_continuation_callstack k 100));
-      flush stdout;
-      continue k 42
+  try_with d i
+  { effc = fun (type a) (e: a t) ->
+      match e with
+      | Peek -> Some (fun (k: (a,_) continuation) ->
+          Printexc.(print_raw_backtrace stdout (Effect.Deep.get_callstack k 100));
+          flush stdout;
+          continue k 42
+        )
+      | _ -> None
+  }
 
 let _ = Printf.printf "%d\n" (e 100)
 ```
@@ -712,9 +730,15 @@ the function `f` for one step with argument `v`.
 
 ```ocaml
 let step f v () =
-  match f v with
-  | _ -> Done
-  | effect (Xchg m) k -> Paused (m, k)
+  match_with f v
+  { retc = (fun _ -> Done);
+    exnc = (fun e -> raise e);
+    effc = (fun (type b) (eff: b t) ->
+        match eff with
+        | Xchg m -> Some (fun (k: (b,_) continuation) ->
+                Paused (m, k))
+        | _ -> None
+    )}
 ```
 
 The task may perform an `Xchg` in which case we return its `Paused` state. We
@@ -981,10 +1005,11 @@ end
 We declare effects for `async` and `yield`:
 
 ```ocaml
-effect Async : (unit -> 'a) -> unit
+type _ Effect.t += Async : (unit -> 'a) -> unit Effect.t
+               | Yield : unit Effect.t
+
 let async f = perform (Async f)
 
-effect Yield : unit
 let yield () = perform Yield
 ```
 
@@ -1002,15 +1027,22 @@ And finally, the main function is:
 
 ```ocaml
 let rec run : 'a. (unit -> 'a) -> unit =
-  fun main ->
-    match main () with
-    | _ -> dequeue () (* value case *)
-    | effect (Async f) k ->
-        enqueue (continue k);
-        run f
-    | effect Yield k ->
-        enqueue (continue k);
-        dequeue ()
+fun main ->
+  match_with main ()
+  { retc = (fun _ -> dequeue ());
+    exnc = (fun e -> raise e);
+    effc = (fun (type b) (eff: b Effect.t) ->
+        match eff with
+        | Async f -> Some (fun (k: (b, _) continuation) ->
+                enqueue (continue k);
+                run f
+        )
+        | Yield -> Some (fun k ->
+                enqueue (continue k);
+                dequeue ()
+        )
+        | _ -> None
+    )}
 ```
 
 If the task runs to completion (value case), then we dequeue and run the next
@@ -1187,13 +1219,13 @@ type file_descr = Unix.file_descr
 type sockaddr = Unix.sockaddr
 type msg_flag = Unix.msg_flag
 
-effect Accept : file_descr -> (file_descr * sockaddr)
+type _ Effect.t += Accept : file_descr -> (file_descr * sockaddr) Effect.t
 let accept fd = perform (Accept fd)
 
-effect Recv : file_descr * bytes * int * int * msg_flag list -> int
+type _ Effect.t += Recv : file_descr * bytes * int * int * msg_flag list -> int Effect.t
 let recv fd buf pos len mode = perform (Recv (fd, buf, pos, len, mode))
 
-effect Send : file_descr * bytes * int * int * msg_flag list -> int
+type _ Effect.t += Send : file_descr * bytes * int * int * msg_flag list -> int Effect.t
 let send fd bus pos len mode = perform (Send (fd, bus, pos, len, mode))
 ```
 
@@ -1293,3 +1325,9 @@ OCaml. You should be familiar with:
   * Implementation of algebraic effect handlers in Multicore OCaml.
   * Developing control-flow abstractions such as restartable exceptions,
     generators, streams, coroutines, and asynchronous I/O.
+
+
+### 7.1 Other resources
+
+  * [OCaml manual on Effects and handlers](https://kcsrk.info/webman/manual/effects.html)
+  * [effect.mli](https://github.com/ocaml/ocaml/blob/trunk/stdlib/effect.mli) in OCaml standard library
