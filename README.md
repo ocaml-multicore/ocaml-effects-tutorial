@@ -209,7 +209,8 @@ type _ Effect.t += Conversion_failure : string -> int Effect.t
 (* c.f. [exception Conversion_failure of string] *)
 ```
 
-Effects are declared by adding constructors to an [extensible variant type](https://kcsrk.info/webman/manual/extensiblevariants.html) defined in the `Effect` module.
+Effects are declared by adding constructors to an [extensible variant type](https://kcsrk.info/webman/manual/extensiblevariants.html)
+defined in the `Effect` module.
 
 Unlike exceptions, performing an effect returns a value. The declaration here
 says that `Conversion_failure` is an algebraic effect that takes a string
@@ -220,7 +221,8 @@ Just like exceptions, effects are values. The type of `Conversion_failure
 We perform the effect with `perform : 'a Effect.t -> 'a` primitive (c.f. `raise :
 exn -> 'a (* bottom *)`). 
 
-Effect handlers are defined in the modules `Effect.Deep` and `Effect.Shallow`. We'll discuss the differences between the two later. (TODO THOMAS)
+Effect handlers are defined in the modules `Effect.Deep` and `Effect.Shallow`.
+We'll discuss the differences between the two later. (TODO THOMAS)
 
 ```ocaml
 module Deep : sig
@@ -266,13 +268,20 @@ module Shallow : sig
 
 The handlers are records with three fields and are called in the context of `match_with`, `try_with`, or `continue_with`:
 
-`retc` is the function that is called when the computation returns a value - i.e. no effects or exceptions were performed/raised in the computation. The function has one parameter: the value of the computation
+`retc` is the function that is called when the computation returns a value -
+i.e. no effects or exceptions were performed/raised in the computation. The
+function has one parameter: the value of the computation
 
 `exnc` is called when the computation throws an exception. It takes the exception as a parameter.
 
 `effc` is the function that handles the effects. It has type `'c. 'c Effect.t -> ('c, 'a) continuation -> 'b) option`
 
-Effects are strongly typed, but the handler function can handle multiple effects and has to be generic over every possible type (which is potentially all of them since the effects variant can always be extended further), hence the `'c` existential type. `effc` returns an `option` where a None value means ignore the effect (and crash the program if not handled somewhere else). A Some value holds a function that takes a parameter commonly called `k`
+Effects are strongly typed, but the handler function can handle multiple
+effects and has to be generic over every possible type (which is potentially
+all of them since the effects variant can always be extended further), hence
+the `'c` existential type. `effc` returns an `option` where a None value means
+ignore the effect (and crash the program if not handled somewhere else). A Some
+value holds a function that takes a parameter commonly called `k`
 
 ```ocaml
   { effc = (fun (type c) (eff: c Effect.t) ->
@@ -285,7 +294,8 @@ Effects are strongly typed, but the handler function can handle multiple effects
    }
 ```
 
-We need to declare a [locally abstract type](https://kcsrk.info/webman/manual/locallyabstract.html) `c` in order to tell the compiler that `eff` and `k` are constrained on the same type.
+We need to declare a [locally abstract type](https://kcsrk.info/webman/manual/locallyabstract.html) `c` in order to
+tell the compiler that `eff` and `k` are constrained on the same type.
 
 The parameter `k`, is the *delimited continuation*
 between the point of performing the effect and the effect handler. The delimited
@@ -345,23 +355,23 @@ Let's fire up the OCaml top-level:
 
 ```ocaml
 $ ocaml
-        OCaml version 4.02.2+multicore-dev0
+OCaml version 5.0.0~beta1
 
-# effect E : unit;; 
-effect E : unit  (* E is a nullary effect that returns unit *)
+# open Effect;;
+# type _ Effect.t += E : unit Effect.t;;
+type _ Stdlib.Effect.t += E : unit Effect.t
 # let f () = perform E;;
 val f : unit -> unit = <fun>
 # f ();;
-Exception: Unhandled.
-# match f () with (* alternative syntax for effect handlers *)
-  | () -> "done"                              (* value case *)
-  | effect E k -> continue k ();;            (* effect case *)
-- : string = "done"
+Exception: Stdlib.Effect.Unhandled(E)
+# open Effect.Deep;;
+# try_with f () {effc = (fun (type c) (eff: c Effect.t) ->
+      match eff with
+      | E -> Some (fun (k: (c,_) continuation) -> continue k ())
+      | _ -> None
+  )};;
+- : unit = ()
 ```
-
-An effect system for OCaml 
-[is in development](https://www.youtube.com/watch?t=2035&v=z8SI7WBtlcA&feature=youtu.be). 
-When effect handlers land in upstream OCaml, they will be equipped with an effect system.
 
 ### Exercise 1: Implement exceptions from effects ★☆☆☆☆
 
@@ -684,7 +694,7 @@ We define an effect `Xchg : int -> int` for exchanging integer messages with the
 other task. During an exchange, the task sends as well as receives an integer.
 
 ```ocaml
-effect Xchg : int -> int
+type _ Effect.t += Xchg : int -> int Effect.t
 ```
 
 Since the task may suspend, we need a way to represent the status of the task:
