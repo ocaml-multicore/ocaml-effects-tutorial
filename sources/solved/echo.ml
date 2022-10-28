@@ -39,7 +39,7 @@ end) = struct
     let total = ref 0 in
     (try
         while !total < len do
-          let write_count = Aio.send sock str !total (len - !total) [] in
+          let write_count = Aio.send sock (Bytes.of_string str) !total (len - !total) [] in
           total := write_count + !total
         done
       with _ -> ()
@@ -52,7 +52,7 @@ end) = struct
       try Aio.recv sock str 0 maxlen []
       with _ -> 0
     in
-    String.sub str 0 recvlen
+    String.sub (String.of_bytes str) 0 recvlen
 
   let close sock =
     try Unix.shutdown sock Unix.SHUTDOWN_ALL
