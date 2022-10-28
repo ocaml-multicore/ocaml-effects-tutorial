@@ -234,6 +234,7 @@ We'll discuss the differences between the two later. (TODO THOMAS)
 ```ocaml
 module Deep : sig
   (** Some contents omitted *)
+
   type ('a,'b) handler =
     { retc: 'a -> 'b;
       exnc: exn -> 'b;
@@ -257,6 +258,7 @@ end
 
 module Shallow : sig
   (** Some contents omitted *)
+
   type ('a,'b) handler =
     { retc: 'a -> 'b;
       exnc: exn -> 'b;
@@ -271,6 +273,7 @@ module Shallow : sig
       @raise Continuation_already_resumed if the continuation has already been
       resumed.
    *)
+end
 ```
 
 The handlers are records with three fields and are called in the context of `match_with`, `try_with`, or `continue_with`:
