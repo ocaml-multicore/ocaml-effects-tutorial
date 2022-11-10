@@ -215,7 +215,7 @@ type _ Effect.t += Conversion_failure : string -> int Effect.t
 (* c.f. [exception Conversion_failure of string] *)
 ```
 
-Effects are declared by adding constructors to an [extensible variant type](https://kcsrk.info/webman/manual/extensiblevariants.html)
+Effects are declared by adding constructors to an [extensible variant type](https://v2.ocaml.org/manual/extensiblevariants.html)
 defined in the `Effect` module.
 
 Unlike exceptions, performing an effect returns a value. The declaration here
