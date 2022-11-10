@@ -1,18 +1,16 @@
 # Concurrent Programming with Effect Handlers 
 <!-- [![Build Status](https://travis-ci.org/ocamllabs/ocaml-effects-tutorial.svg?branch=master)](https://travis-ci.org/ocamllabs/ocaml-effects-tutorial)    -->
-[![Build Status](https://github.com/tanelso2/ocaml-effects-tutorial/actions/workflows/prs.yml/badge.svg)](https://github.com/tanelso2/ocaml-effects-tutorial/actions/workflows/prs.yml)
+[![Build Status](https://github.com/ocamllabs/ocaml-effects-tutorial/actions/workflows/prs.yml/badge.svg)](https://github.com/ocamllabs/ocaml-effects-tutorial/actions/workflows/prs.yml)
 
 Originally written as materials for the [CUFP 17 tutorial](http://cufp.org/2017/c3-daniel-hillerstrom-kc-concurrent-programming-with-effect-handlers.html).
 
 ## Setting up
 
-Install a compatible OCaml compiler
+### Install a compatible OCaml compiler
 
-```bash
-opam switch create 5.0.0~beta1
-```
+Up to date instructions can be found at https://github.com/ocaml-multicore/awesome-multicore-ocaml#installation
 
-Install required tools
+### Install required tools
 
 ```bash
 opam install ocamlbuild ocamlfind
@@ -192,7 +190,7 @@ let _ =
         | e -> raise e
     );
     (* Shouldn't reach here, means sum_up returned a value *)
-    retc = fun _ -> failwith "Impossible?" 
+    retc = fun _ -> failwith "Impossible, sum_up shouldn't return"
   }
 ```
 
@@ -230,7 +228,7 @@ We perform the effect with `perform : 'a Effect.t -> 'a` primitive (c.f. `raise 
 exn -> 'a (* bottom *)`). 
 
 Effect handlers are defined in the modules `Effect.Deep` and `Effect.Shallow`.
-We'll discuss the differences between the two later. (TODO THOMAS)
+We'll discuss the differences between the two later.
 
 ```ocaml
 module Deep : sig
@@ -305,7 +303,7 @@ value holds a function that takes a parameter commonly called `k`
    }
 ```
 
-We need to declare a [locally abstract type](https://kcsrk.info/webman/manual/locallyabstract.html) `c` in order to
+We need to declare a [locally abstract type](https://v2.ocaml.org/manual/locallyabstract.html) `c` in order to
 tell the compiler that `eff` and `k` are constrained on the same type.
 
 The parameter `k`, is the *delimited continuation*
