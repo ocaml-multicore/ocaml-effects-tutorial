@@ -591,27 +591,31 @@ new handler is installed, a continuation is resumed with `continue` or
 program as it executes. 
 
 ```
-(gdb) break caml_resume
-Breakpoint 1 at 0x100052bb0
 (gdb) break caml_perform
-Breakpoint 2 at 0x100052a28
+Breakpoint 1 at 0xaeca8
+(gdb) break caml_resume
+Breakpoint 2 at 0xaed38
 (gdb) r
-Starting program:
-/Users/kc/research/repos/multicore-ocaml-cufp17-tutorial/sources/gdb.native 
-[New Thread 0x1403 of process 26168]
-[New Thread 0x1503 of process 26168]
-warning: unhandled dyld version (15)
+Starting program: /home/sudha/ocaml/temp/ocaml-effects-tutorial/sources/gdb.native 
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
 
-Thread 3 hit Breakpoint 1, 0x0000000100052bb0 in caml_resume ()
+Breakpoint 1, 0x0000555555602ca8 in caml_perform ()
 (gdb) bt
-#0  0x0000000100052bb0 in caml_resume ()
-#1  0x000000010000450f in camlGdb__e_1021 ()
-#2  0x0000000100004770 in camlGdb__entry ()
-#3  0x0000000100000d54 in caml_program ()
-#4  <signal handler called>
-#5  0x000000010005260f in caml_start_program ()
-#6  0x00000001000356c7 in caml_main (argv=0x2002018c8) at startup.c:123
-#7  0x000000010003571c in main (argc=<optimized out>, argv=0x1) at main.c:49
+#0  0x0000555555602ca8 in caml_perform ()
+#1  0x00005555555a3c08 in camlGdb__b_311 () at gdb.ml:7
+#2  0x00005555555a3c69 in camlGdb__c_313 () at gdb.ml:9
+#3  <signal handler called>
+#4  0x00005555555a3cd8 in camlGdb__d_315 () at gdb.ml:13
+#5  <signal handler called>
+#6  0x00005555555a3db8 in camlGdb__e_329 () at gdb.ml:22
+#7  0x00005555555a4034 in camlGdb__entry () at gdb.ml:33
+#8  0x00005555555a13ab in caml_program ()
+#9  <signal handler called>
+#10 0x000055555560252f in caml_startup_common (argv=0x7fffffffda68, pooling=<optimized out>) at runtime/startup_nat.c:129
+#11 0x000055555560257b in caml_startup_exn (argv=<optimized out>) at runtime/startup_nat.c:136
+#12 caml_startup (argv=<optimized out>) at runtime/startup_nat.c:141
+#13 0x00005555555a108c in main (argc=<optimized out>, argv=<optimized out>) at runtime/main.c:37
 ```
 
 Enter effect handler in `e`. The `<signal handler called>` frames correspond to
@@ -623,85 +627,36 @@ contiguous stack chunks.
 ```
 (gdb) c
 Continuing.
+Raised by primitive operation at Gdb.a in file "gdb.ml" (inlined), line 7, characters 14-26
+Called from Gdb.b in file "gdb.ml", line 8, characters 14-17
+Called from Gdb.c in file "gdb.ml", line 9, characters 14-17
+Called from Gdb.d in file "gdb.ml", line 13, characters 2-159
 
-Thread 3 hit Breakpoint 1, 0x0000000100052bb0 in caml_resume ()
+Breakpoint 2, 0x0000555555602d38 in caml_resume ()
 (gdb) bt
-#0  0x0000000100052bb0 in caml_resume ()
-#1  0x000000010000441f in camlGdb__d_1016 ()
-#2  <signal handler called>
-#3  0x0000000100052964 in caml_fiber_val_handler ()
-#4  0x000000010000450f in camlGdb__e_1021 ()
-#5  0x0000000100004770 in camlGdb__entry ()
-#6  0x0000000100000d54 in caml_program ()
-#7  <signal handler called>
-#8  0x000000010005260f in caml_start_program ()
-#9  0x00000001000356c7 in caml_main (argv=0x2002015c8) at startup.c:123
-#10 0x000000010003571c in main (argc=<optimized out>, argv=0x1) at main.c:49
-```
-
-Enter handler in `d`.
-
-```
-(gdb) c
-Continuing.
-
-Thread 3 hit Breakpoint 2, 0x0000000100052a28 in caml_perform ()
-(gdb) bt
-#0  0x0000000100052a28 in caml_perform ()
-#1  0x0000000100004271 in camlGdb__a_1010 ()
-#2  0x00000001000042e0 in camlGdb__b_1012 ()
-#3  0x0000000100004350 in camlGdb__c_1014 ()
+#0  0x0000555555602d38 in caml_resume ()
+#1  0x00005555555a3db8 in camlGdb__e_329 () at gdb.ml:22
+#2  0x00005555555a4034 in camlGdb__entry () at gdb.ml:33
+#3  0x00005555555a13ab in caml_program ()
 #4  <signal handler called>
-#5  0x0000000100052964 in caml_fiber_val_handler ()
-#6  0x000000010000441f in camlGdb__d_1016 ()
-#7  <signal handler called>
-#8  0x0000000100052964 in caml_fiber_val_handler ()
-#9  0x000000010000450f in camlGdb__e_1021 ()
-#10 0x0000000100004770 in camlGdb__entry ()
-#11 0x0000000100000d54 in caml_program ()
-#12 <signal handler called>
-#13 0x000000010005260f in caml_start_program ()
-#14 0x00000001000356c7 in caml_main (argv=0x2002013f0) at startup.c:123
-#15 0x000000010003571c in main (argc=<optimized out>, argv=0x22979809) at main.c:49
-```
-
-`perform Peek` in `a`.
-
-```
-(gdb) c
-Continuing.
-Raised by primitive operation at file "gdb.ml", line 4, characters 14-26
-Called from file "gdb.ml", line 5, characters 14-17
-Called from file "gdb.ml", line 6, characters 14-17
-Called from file "gdb.ml", line 10, characters 2-62
+#5  0x000055555560252f in caml_startup_common (argv=0x7fffffffda68, pooling=<optimized out>) at runtime/startup_nat.c:129
+#6  0x000055555560257b in caml_startup_exn (argv=<optimized out>) at runtime/startup_nat.c:136
+#7  caml_startup (argv=<optimized out>) at runtime/startup_nat.c:141
+#8  0x00005555555a108c in main (argc=<optimized out>, argv=<optimized out>) at runtime/main.c:37
 ```
 
 The control switches to the effect handler. In the effect handler for `Peek` in
 `e`, we get the backtrace of the continuation and print it.
 
-```
-Thread 3 hit Breakpoint 1, 0x0000000100052bb0 in caml_resume ()
-(gdb) bt
-#0  0x0000000100052bb0 in caml_resume ()
-#1  0x000000010000450f in camlGdb__e_1021 ()
-#2  0x0000000100004770 in camlGdb__entry ()
-#3  0x0000000100000d54 in caml_program ()
-#4  <signal handler called>
-#5  0x000000010005260f in caml_start_program ()
-#6  0x00000001000356c7 in caml_main (argv=0x200200058) at startup.c:123
-#7  0x000000010003571c in main (argc=<optimized out>, argv=0x55) at main.c:49
-```
-
 This break point corresponds to `continue k 42` in `e`.
 
-```
-(gdb) c
-Continuing.
-333
-[Inferior 1 (process 26168) exited normally]
-(gdb) 
-```
 The program terminates normally. 
+
+```
+Continuing.
+329
+[Inferior 1 (process 8464) exited normally]
+```
 
 ## 4. Generators & streams.
 
