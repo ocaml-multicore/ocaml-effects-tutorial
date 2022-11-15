@@ -8,9 +8,30 @@ on:
 
 jobs:
   build:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+        ocaml-compiler:
+          - ocaml-base-compiler.5.0.0~beta1
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+
     steps:
-    - uses: actions/checkout@v3
-    - name: Run docker build
-      run: docker build .
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Use OCaml ${{ matrix.ocaml-compiler }}
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: ${{ matrix.ocaml-compiler }}
+          opam-repositories: |
+            default: https://github.com/ocaml/opam-repository.git
+            alpha: git+https://github.com/kit-ty-kate/opam-alpha-repository
+          cache-prefix: ${{ steps.multicore_hash.outputs.commit }}
+          opam-depext: false
+
+      - run: |
+            cd sources
+            make all
