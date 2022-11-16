@@ -32,6 +32,8 @@ jobs:
           cache-prefix: ${{ steps.multicore_hash.outputs.commit }}
           opam-depext: false
 
+      - run: opam install ocamlbuild ocamlfind
+
       - run: |
             cd sources
-            make all
+            opam exec -- make all
