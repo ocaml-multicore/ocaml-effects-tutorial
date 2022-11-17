@@ -1,12 +1,21 @@
 # Concurrent Programming with Effect Handlers 
+<!-- [![Build Status](https://travis-ci.org/ocamllabs/ocaml-effects-tutorial.svg?branch=master)](https://travis-ci.org/ocamllabs/ocaml-effects-tutorial)    -->
+[![Build Status](https://github.com/ocamllabs/ocaml-effects-tutorial/actions/workflows/prs.yml/badge.svg)](https://github.com/ocamllabs/ocaml-effects-tutorial/actions/workflows/prs.yml)
 
-[![Build Status](https://travis-ci.org/ocamllabs/ocaml-effects-tutorial.svg?branch=master)](https://travis-ci.org/ocamllabs/ocaml-effects-tutorial)   
-
-Materials for the [CUFP 17 tutorial](http://cufp.org/2017/c3-daniel-hillerstrom-kc-concurrent-programming-with-effect-handlers.html).
+Originally written as materials for the [CUFP 17 tutorial](http://cufp.org/2017/c3-daniel-hillerstrom-kc-concurrent-programming-with-effect-handlers.html).
 
 ## Setting up
 
-Install the Multicore OCaml compiler [using opam](https://github.com/ocaml-multicore/multicore-opam#install-multicore-ocaml).
+### Install a compatible OCaml compiler
+
+Up to date instructions can be found at https://github.com/ocaml-multicore/awesome-multicore-ocaml#installation
+
+### Install required tools
+
+```bash
+opam install ocamlbuild ocamlfind
+```
+
 
 ## Outline
 
@@ -15,7 +24,7 @@ The tutorial is structured as follows:
 1. [Algebraic Effects and Handlers.](#1-algebraic-effects-and-handlers)  
   1.1. [Recovering from errors](#11-recovering-from-errors)  
   1.2. [Basics](#12-basics)   
-2. [Effectful Computations in a Pure Setting.](#2-effectful-computations-in-a-pure-setting)    
+2. [Shallow and Deep Handlers.](#2-shallow-and-deep-handlers)    
 3. [Delimited Continuations: A deep dive.](#3-delimited-continuations-a-deep-dive)  
   3.1. [Examining effect handlers through GDB](#31-examining-effect-handlers-through-gdb)  
 4. [Generators & Streams.](#4-general-control-flow-abstractions-generators--streams)  
@@ -151,7 +160,10 @@ Algebraic effect handlers allow you to recover from errors. The following code
 is available in `sources/input_line_eff.ml`
 
 ```ocaml
-effect Conversion_failure : string -> int
+open Effect
+open Effect.Deep
+
+type _ Effect.t += Conversion_failure : string -> int Effect.t
 
 let int_of_string l =
   try int_of_string l with
@@ -163,12 +175,23 @@ let rec sum_up acc =
     sum_up acc
 
 let _ =
+  Printf.printf "Starting up. Please input:\n%!";
   let r = ref 0 in
-  try sum_up r with
-  | End_of_file -> Printf.printf "Sum is %d\n" !r
-  | effect (Conversion_failure s) k ->
-      Printf.fprintf stderr "Conversion failure \"%s\"\n%!" s;
-      continue k 0
+  match_with sum_up r
+  { effc = (fun (type c) (eff: c Effect.t) ->
+      match eff with
+      | Conversion_failure s -> Some (fun (k: (c,_) continuation) ->
+              Printf.fprintf stderr "Conversion failure \"%s\"\n%!" s;
+              continue k 0)
+      | _ -> None
+    );
+    exnc = (function
+        | End_of_file -> Printf.printf "Sum is %d\n" !r
+        | e -> raise e
+    );
+    (* Shouldn't reach here, means sum_up returned a value *)
+    retc = fun _ -> failwith "Impossible, sum_up shouldn't return"
+  }
 ```
 
 First, lets run this program:
@@ -188,38 +211,110 @@ We've recovered from the conversion error and kept going. Algebraic effects and
 handlers are similar to exceptions in that we can declare new effects:
 
 ```ocaml
-effect Conversion_failure : string -> int
+type _ Effect.t += Conversion_failure : string -> int Effect.t
 (* c.f. [exception Conversion_failure of string] *)
 ```
+
+Effects are declared by adding constructors to an [extensible variant type](https://v2.ocaml.org/manual/extensiblevariants.html)
+defined in the `Effect` module.
 
 Unlike exceptions, performing an effect returns a value. The declaration here
 says that `Conversion_failure` is an algebraic effect that takes a string
 parameter, which when performed, returns an integer. 
 
 Just like exceptions, effects are values. The type of `Conversion_failure
-"MMXVII"` is `int effect`, where `int` is the result of performing the effect.
-We perform the effect with `perform : 'a eff -> 'a` primitive (c.f. `raise :
+"MMXVII"` is `int Effect.t`, where `int` is the result of performing the effect.
+We perform the effect with `perform : 'a Effect.t -> 'a` primitive (c.f. `raise :
 exn -> 'a (* bottom *)`). 
 
-Effect handlers are similar to exception handlers:
+Effect handlers are defined in the modules `Effect.Deep` and `Effect.Shallow`.
+We'll discuss the differences between the two later.
 
 ```ocaml
-try sum_up r with
-| End_of_file -> Printf.printf "Sum is %d\n" !r
-| effect (Conversion_failure s) k ->
-    Printf.fprintf stderr "Conversion failure \"%s\"\n%!" s;
-    continue k 0
+module Deep : sig
+  (** Some contents omitted *)
+
+  type ('a,'b) handler =
+    { retc: 'a -> 'b;
+      exnc: exn -> 'b;
+      effc: 'c.'c t -> (('c,'b) continuation -> 'b) option }
+  (** [('a,'b) handler] is a handler record with three fields -- [retc]
+      is the value handler, [exnc] handles exceptions, and [effc] handles the
+      effects performed by the computation enclosed by the handler. *)
+
+  val match_with: ('c -> 'a) -> 'c -> ('a,'b) handler -> 'b
+  (** [match_with f v h] runs the computation [f v] in the handler [h]. *)
+
+  type 'a effect_handler =
+    { effc: 'b. 'b t -> (('b, 'a) continuation -> 'a) option }
+  (** ['a effect_handler] is a deep handler with an identity value handler
+      [fun x -> x] and an exception handler that raises any exception
+      [fun e -> raise e]. *)
+
+  val try_with: ('b -> 'a) -> 'b -> 'a effect_handler -> 'a
+  (** [try_with f v h] runs the computation [f v] under the handler [h]. *)
+end
+
+module Shallow : sig
+  (** Some contents omitted *)
+
+  type ('a,'b) handler =
+    { retc: 'a -> 'b;
+      exnc: exn -> 'b;
+      effc: 'c.'c t -> (('c,'a) continuation -> 'b) option }
+  (** [('a,'b) handler] is a handler record with three fields -- [retc]
+      is the value handler, [exnc] handles exceptions, and [effc] handles the
+      effects performed by the computation enclosed by the handler. *)
+
+  val continue_with : ('c,'a) continuation -> 'c -> ('a,'b) handler -> 'b
+  (** [continue_with k v h] resumes the continuation [k] with value [v] with
+      the handler [h].
+      @raise Continuation_already_resumed if the continuation has already been
+      resumed.
+   *)
+end
 ```
 
-but has an additional parameter `k`, which is the *delimited continuation*
+The handlers are records with three fields and are called in the context of `match_with`, `try_with`, or `continue_with`:
+
+`retc` is the function that is called when the computation returns a value -
+i.e. no effects or exceptions were performed/raised in the computation. The
+function has one parameter: the value of the computation
+
+`exnc` is called when the computation throws an exception. It takes the exception as a parameter.
+
+`effc` is the function that handles the effects. It has type `'c. 'c Effect.t -> ('c, 'a) continuation -> 'b) option`
+
+Effects are strongly typed, but the handler function can handle multiple
+effects and has to be generic over every possible type (which is potentially
+all of them since the effects variant can always be extended further), hence
+the `'c` existential type. `effc` returns an `option` where a None value means
+ignore the effect (and crash the program if not handled somewhere else). A Some
+value holds a function that takes a parameter commonly called `k`
+
+```ocaml
+  { effc = (fun (type c) (eff: c Effect.t) ->
+      match eff with
+      | Conversion_failure s -> Some (fun (k: (c,_) continuation) ->
+              Printf.fprintf stderr "Conversion failure \"%s\"\n%!" s;
+              continue k 0)
+      | _ -> None
+    )
+   }
+```
+
+We need to declare a [locally abstract type](https://v2.ocaml.org/manual/locallyabstract.html) `c` in order to
+tell the compiler that `eff` and `k` are constrained on the same type.
+
+The parameter `k`, is the *delimited continuation*
 between the point of performing the effect and the effect handler. The delimited
 continuation is like a dynamically defined function, that can be called and
 returns a value. The type of `k` in this case is `(int, int) continuation`,
 which says that the continuation expects an integer to continue (the first type
 parameter), and returns with an integer (the second type parameter). 
 
-The delimited continuation is resumed with `continue : ('a,'b) continuation ->
-'a -> 'b` primitive. In this example, `continue k 0` resumes the continuation
+The delimited continuation is resumed with `Effect.Deep`'s `continue : ('a,'b) continuation ->
+'a -> 'b`. In this example, `continue k 0` resumes the continuation
 with `0`, and the corresponding `perform (Conversion_failure l)` returns with
 `0`.
 
@@ -228,11 +323,21 @@ then we can `discontinue : ('a,'b) continuation -> exn -> 'b` the continuation
 so that it raises an exception at the perform point. 
 
 ```ocaml
-  try sum_up r with
-  | End_of_file -> Printf.printf "Sum is %d\n" !r
-  | effect (Conversion_failure s) k ->
-      Printf.fprintf stderr "Conversion failure \"%s\"\n%!" s;
-      discontinue k (Failure "int_of_string")
+  match_with sum_up r
+  { effc = (fun (type a) (e: a t) ->
+      match e with
+      | Conversion_failure s -> Some (fun (k: (a,_) continuation) ->
+          Printf.fprintf stderr "Conversion failure \"%s\"\n%!" s;
+          discontinue k (Failure "int_of_string"))
+      | _ -> None
+    );
+    exnc = (function
+        | End_of_file -> Printf.printf "Sum is %d\n" !r
+        | e -> raise e
+    );
+    (* Shouldn't reach here, means sum_up returned a value *)
+    retc = fun v -> v
+  }
 ```
 
 Now,
@@ -259,23 +364,23 @@ Let's fire up the OCaml top-level:
 
 ```ocaml
 $ ocaml
-        OCaml version 4.02.2+multicore-dev0
+OCaml version 5.0.0~beta1
 
-# effect E : unit;; 
-effect E : unit  (* E is a nullary effect that returns unit *)
+# open Effect;;
+# type _ Effect.t += E : unit Effect.t;;
+type _ Stdlib.Effect.t += E : unit Effect.t
 # let f () = perform E;;
 val f : unit -> unit = <fun>
 # f ();;
-Exception: Unhandled.
-# match f () with (* alternative syntax for effect handlers *)
-  | () -> "done"                              (* value case *)
-  | effect E k -> continue k ();;            (* effect case *)
-- : string = "done"
+Exception: Stdlib.Effect.Unhandled(E)
+# open Effect.Deep;;
+# try_with f () {effc = (fun (type c) (eff: c Effect.t) ->
+      match eff with
+      | E -> Some (fun (k: (c,_) continuation) -> continue k ())
+      | _ -> None
+  )};;
+- : unit = ()
 ```
-
-An effect system for OCaml 
-[is in development](https://www.youtube.com/watch?t=2035&v=z8SI7WBtlcA&feature=youtu.be). 
-When effect handlers land in upstream OCaml, they will be equipped with an effect system.
 
 ### Exercise 1: Implement exceptions from effects ★☆☆☆☆
 
@@ -283,13 +388,16 @@ As mentioned before, effects generalise exceptions. Exceptions handlers are
 effect handlers that ignore the continuation. Your task is to implement
 exceptions in terms of effects. The source file is `sources/exceptions.ml`.
 
-## 2. Effectful Computations in a Pure Setting
+## 2. Shallow vs Deep Handlers
 
-Algebraic effects and handlers emulate effects in a pure setting. Let us
-implement ambient state. The implementation is available in `sources/state1.ml`.
+The OCaml standard library provides two different modules for handling effects: `Effect.Deep` and `Effect.Shallow`. When a deep handler returns a continuation, the continuation also includes the handler. This means that, when the continuation is resumed, the effect handler is automatically re-installed, and will handle the effect(s) that the computation may perform in the future.
+
+Shallow handlers on the other hand, allow us to change the handlers every time an effect is performed. Let's use them to implement state without refs. The implementation is available in `sources/state1.ml`.
 
 ```ocaml
 open Printf
+open Effect
+open Effect.Shallow
 
 module type STATE = sig
   type t
@@ -301,28 +409,31 @@ module State (S : sig type t end) : STATE with type t = S.t = struct
 
   type t = S.t
 
-  effect Get : t
+  type _ Effect.t += Get : t Effect.t
+
   let get () = perform Get
 
   let run f ~init =
-    let comp =
-      match f () with
-      | () -> (fun s -> ())
-      | effect Get k -> (fun (s : t) -> continue k s s)
-    in comp init
+    let rec loop : type a r. t -> (a, r) continuation -> a -> r =
+      fun state k x ->
+        continue_with k x
+        { retc = (fun result -> result);
+          exnc = (fun e -> raise e);
+          effc = (fun (type b) (eff: b Effect.t) ->
+            match eff with
+            | Get -> Some (fun (k: (b,r) continuation) ->
+                    loop state k state)
+            | _ -> None)
+        }
+    in
+    loop init (fiber f) ()
 end
 ```
 
-If you are familiar with state monad, the implementation idea is very similar.
-In general, algebraic effect handlers and monads have a lot in common. In fact,
-a popular way of implementing algebraic effects is through [free monadic
-interpretation](http://www.haskellforall.com/2012/06/you-could-have-invented-free-monads.html). 
+We use `Effect.Shallow` by wrapping calculations with `continue_with : ('c,'a) continuation -> 'c -> ('a,'b) handler -> 'b` and getting an initial continuation with `val fiber : ('a -> 'b) -> ('a, 'b) continuation`
 
-Coming back to the program at hand, we define an effect `Get` that returns a
-value of type `t` when performed. The actual interpreter simply threads the
-ambient state through the computation. The operation `Get` is interpreted as
-continuing with `s` (the second argument to continue). `run` function runs the
-interpreter with the given initial state.
+In this example, we define an effect `Get` that returns a
+value of type `t` when performed. 
 
 ```ocaml
 module IS = State (struct type t = int end)
@@ -357,6 +468,8 @@ Your task it to implement `put : t -> unit` that updates the state and `history
 The source file is `sources/state2.ml`.
 
 ## 3. Delimited Continuations: A deep dive
+
+**EDITOR'S NOTE: The implementation has changed since this section was written. Results in gdb will differ, but the concepts of the implementation remain mostly the same.**
 
 Algebraic effect handlers in Multicore OCaml are very efficient due to several
 choices we make in their implementation. Understanding the implementation of
@@ -427,8 +540,11 @@ userland code and the kernel is not involved.
 The file `sources/gdb.ml`:
 
 ```ocaml
-effect Peek : int
-effect Poke : unit
+open Effect
+open Effect.Deep
+
+type _ Effect.t += Peek : int Effect.t
+                 | Poke : unit Effect.t
 
 let rec a i = perform Peek + Random.int i
 let rec b i = a i + Random.int i
@@ -436,18 +552,25 @@ let rec c i = b i + Random.int i
 
 let rec d i =
   Random.int i +
-  match c i with
-  | v -> v
-  | effect Poke k -> continue k ()
+  try_with c i
+  { effc = fun (type a) (e: a t) ->
+      match e with
+      | Poke -> Some (fun (k: (a,_) continuation) -> continue k ())
+      | _ -> None
+  }
 
 let rec e i =
   Random.int i +
-  match d i with
-  | v -> v
-  | effect Peek k ->
-      Printexc.(print_raw_backtrace stdout (get_continuation_callstack k 100));
-      flush stdout;
-      continue k 42
+  try_with d i
+  { effc = fun (type a) (e: a t) ->
+      match e with
+      | Peek -> Some (fun (k: (a,_) continuation) ->
+          Printexc.(print_raw_backtrace stdout (Effect.Deep.get_callstack k 100));
+          flush stdout;
+          continue k 42
+        )
+      | _ -> None
+  }
 
 let _ = Printf.printf "%d\n" (e 100)
 ```
@@ -468,27 +591,31 @@ new handler is installed, a continuation is resumed with `continue` or
 program as it executes. 
 
 ```
-(gdb) break caml_resume
-Breakpoint 1 at 0x100052bb0
 (gdb) break caml_perform
-Breakpoint 2 at 0x100052a28
+Breakpoint 1 at 0xaeca8
+(gdb) break caml_resume
+Breakpoint 2 at 0xaed38
 (gdb) r
-Starting program:
-/Users/kc/research/repos/multicore-ocaml-cufp17-tutorial/sources/gdb.native 
-[New Thread 0x1403 of process 26168]
-[New Thread 0x1503 of process 26168]
-warning: unhandled dyld version (15)
+Starting program: /home/sudha/ocaml/temp/ocaml-effects-tutorial/sources/gdb.native 
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
 
-Thread 3 hit Breakpoint 1, 0x0000000100052bb0 in caml_resume ()
+Breakpoint 1, 0x0000555555602ca8 in caml_perform ()
 (gdb) bt
-#0  0x0000000100052bb0 in caml_resume ()
-#1  0x000000010000450f in camlGdb__e_1021 ()
-#2  0x0000000100004770 in camlGdb__entry ()
-#3  0x0000000100000d54 in caml_program ()
-#4  <signal handler called>
-#5  0x000000010005260f in caml_start_program ()
-#6  0x00000001000356c7 in caml_main (argv=0x2002018c8) at startup.c:123
-#7  0x000000010003571c in main (argc=<optimized out>, argv=0x1) at main.c:49
+#0  0x0000555555602ca8 in caml_perform ()
+#1  0x00005555555a3c08 in camlGdb__b_311 () at gdb.ml:7
+#2  0x00005555555a3c69 in camlGdb__c_313 () at gdb.ml:9
+#3  <signal handler called>
+#4  0x00005555555a3cd8 in camlGdb__d_315 () at gdb.ml:13
+#5  <signal handler called>
+#6  0x00005555555a3db8 in camlGdb__e_329 () at gdb.ml:22
+#7  0x00005555555a4034 in camlGdb__entry () at gdb.ml:33
+#8  0x00005555555a13ab in caml_program ()
+#9  <signal handler called>
+#10 0x000055555560252f in caml_startup_common (argv=0x7fffffffda68, pooling=<optimized out>) at runtime/startup_nat.c:129
+#11 0x000055555560257b in caml_startup_exn (argv=<optimized out>) at runtime/startup_nat.c:136
+#12 caml_startup (argv=<optimized out>) at runtime/startup_nat.c:141
+#13 0x00005555555a108c in main (argc=<optimized out>, argv=<optimized out>) at runtime/main.c:37
 ```
 
 Enter effect handler in `e`. The `<signal handler called>` frames correspond to
@@ -500,85 +627,36 @@ contiguous stack chunks.
 ```
 (gdb) c
 Continuing.
+Raised by primitive operation at Gdb.a in file "gdb.ml" (inlined), line 7, characters 14-26
+Called from Gdb.b in file "gdb.ml", line 8, characters 14-17
+Called from Gdb.c in file "gdb.ml", line 9, characters 14-17
+Called from Gdb.d in file "gdb.ml", line 13, characters 2-159
 
-Thread 3 hit Breakpoint 1, 0x0000000100052bb0 in caml_resume ()
+Breakpoint 2, 0x0000555555602d38 in caml_resume ()
 (gdb) bt
-#0  0x0000000100052bb0 in caml_resume ()
-#1  0x000000010000441f in camlGdb__d_1016 ()
-#2  <signal handler called>
-#3  0x0000000100052964 in caml_fiber_val_handler ()
-#4  0x000000010000450f in camlGdb__e_1021 ()
-#5  0x0000000100004770 in camlGdb__entry ()
-#6  0x0000000100000d54 in caml_program ()
-#7  <signal handler called>
-#8  0x000000010005260f in caml_start_program ()
-#9  0x00000001000356c7 in caml_main (argv=0x2002015c8) at startup.c:123
-#10 0x000000010003571c in main (argc=<optimized out>, argv=0x1) at main.c:49
-```
-
-Enter handler in `d`.
-
-```
-(gdb) c
-Continuing.
-
-Thread 3 hit Breakpoint 2, 0x0000000100052a28 in caml_perform ()
-(gdb) bt
-#0  0x0000000100052a28 in caml_perform ()
-#1  0x0000000100004271 in camlGdb__a_1010 ()
-#2  0x00000001000042e0 in camlGdb__b_1012 ()
-#3  0x0000000100004350 in camlGdb__c_1014 ()
+#0  0x0000555555602d38 in caml_resume ()
+#1  0x00005555555a3db8 in camlGdb__e_329 () at gdb.ml:22
+#2  0x00005555555a4034 in camlGdb__entry () at gdb.ml:33
+#3  0x00005555555a13ab in caml_program ()
 #4  <signal handler called>
-#5  0x0000000100052964 in caml_fiber_val_handler ()
-#6  0x000000010000441f in camlGdb__d_1016 ()
-#7  <signal handler called>
-#8  0x0000000100052964 in caml_fiber_val_handler ()
-#9  0x000000010000450f in camlGdb__e_1021 ()
-#10 0x0000000100004770 in camlGdb__entry ()
-#11 0x0000000100000d54 in caml_program ()
-#12 <signal handler called>
-#13 0x000000010005260f in caml_start_program ()
-#14 0x00000001000356c7 in caml_main (argv=0x2002013f0) at startup.c:123
-#15 0x000000010003571c in main (argc=<optimized out>, argv=0x22979809) at main.c:49
-```
-
-`perform Peek` in `a`.
-
-```
-(gdb) c
-Continuing.
-Raised by primitive operation at file "gdb.ml", line 4, characters 14-26
-Called from file "gdb.ml", line 5, characters 14-17
-Called from file "gdb.ml", line 6, characters 14-17
-Called from file "gdb.ml", line 10, characters 2-62
+#5  0x000055555560252f in caml_startup_common (argv=0x7fffffffda68, pooling=<optimized out>) at runtime/startup_nat.c:129
+#6  0x000055555560257b in caml_startup_exn (argv=<optimized out>) at runtime/startup_nat.c:136
+#7  caml_startup (argv=<optimized out>) at runtime/startup_nat.c:141
+#8  0x00005555555a108c in main (argc=<optimized out>, argv=<optimized out>) at runtime/main.c:37
 ```
 
 The control switches to the effect handler. In the effect handler for `Peek` in
 `e`, we get the backtrace of the continuation and print it.
 
-```
-Thread 3 hit Breakpoint 1, 0x0000000100052bb0 in caml_resume ()
-(gdb) bt
-#0  0x0000000100052bb0 in caml_resume ()
-#1  0x000000010000450f in camlGdb__e_1021 ()
-#2  0x0000000100004770 in camlGdb__entry ()
-#3  0x0000000100000d54 in caml_program ()
-#4  <signal handler called>
-#5  0x000000010005260f in caml_start_program ()
-#6  0x00000001000356c7 in caml_main (argv=0x200200058) at startup.c:123
-#7  0x000000010003571c in main (argc=<optimized out>, argv=0x55) at main.c:49
-```
-
 This break point corresponds to `continue k 42` in `e`.
 
-```
-(gdb) c
-Continuing.
-333
-[Inferior 1 (process 26168) exited normally]
-(gdb) 
-```
 The program terminates normally. 
+
+```
+Continuing.
+329
+[Inferior 1 (process 8464) exited normally]
+```
 
 ## 4. Generators & streams.
 
@@ -598,7 +676,7 @@ We define an effect `Xchg : int -> int` for exchanging integer messages with the
 other task. During an exchange, the task sends as well as receives an integer.
 
 ```ocaml
-effect Xchg : int -> int
+type _ Effect.t += Xchg : int -> int Effect.t
 ```
 
 Since the task may suspend, we need a way to represent the status of the task:
@@ -616,9 +694,15 @@ the function `f` for one step with argument `v`.
 
 ```ocaml
 let step f v () =
-  match f v with
-  | _ -> Done
-  | effect (Xchg m) k -> Paused (m, k)
+  match_with f v
+  { retc = (fun _ -> Done);
+    exnc = (fun e -> raise e);
+    effc = (fun (type b) (eff: b t) ->
+        match eff with
+        | Xchg m -> Some (fun (k: (b,_) continuation) ->
+                Paused (m, k))
+        | _ -> None
+    )}
 ```
 
 The task may perform an `Xchg` in which case we return its `Paused` state. We
@@ -885,10 +969,11 @@ end
 We declare effects for `async` and `yield`:
 
 ```ocaml
-effect Async : (unit -> 'a) -> unit
+type _ Effect.t += Async : (unit -> 'a) -> unit Effect.t
+               | Yield : unit Effect.t
+
 let async f = perform (Async f)
 
-effect Yield : unit
 let yield () = perform Yield
 ```
 
@@ -906,15 +991,22 @@ And finally, the main function is:
 
 ```ocaml
 let rec run : 'a. (unit -> 'a) -> unit =
-  fun main ->
-    match main () with
-    | _ -> dequeue () (* value case *)
-    | effect (Async f) k ->
-        enqueue (continue k);
-        run f
-    | effect Yield k ->
-        enqueue (continue k);
-        dequeue ()
+fun main ->
+  match_with main ()
+  { retc = (fun _ -> dequeue ());
+    exnc = (fun e -> raise e);
+    effc = (fun (type b) (eff: b Effect.t) ->
+        match eff with
+        | Async f -> Some (fun (k: (b, _) continuation) ->
+                enqueue (continue k);
+                run f
+        )
+        | Yield -> Some (fun k ->
+                enqueue (continue k);
+                dequeue ()
+        )
+        | _ -> None
+    )}
 ```
 
 If the task runs to completion (value case), then we dequeue and run the next
@@ -1091,13 +1183,13 @@ type file_descr = Unix.file_descr
 type sockaddr = Unix.sockaddr
 type msg_flag = Unix.msg_flag
 
-effect Accept : file_descr -> (file_descr * sockaddr)
+type _ Effect.t += Accept : file_descr -> (file_descr * sockaddr) Effect.t
 let accept fd = perform (Accept fd)
 
-effect Recv : file_descr * bytes * int * int * msg_flag list -> int
+type _ Effect.t += Recv : file_descr * bytes * int * int * msg_flag list -> int Effect.t
 let recv fd buf pos len mode = perform (Recv (fd, buf, pos, len, mode))
 
-effect Send : file_descr * bytes * int * int * msg_flag list -> int
+type _ Effect.t += Send : file_descr * bytes * int * int * msg_flag list -> int Effect.t
 let send fd bus pos len mode = perform (Send (fd, bus, pos, len, mode))
 ```
 
@@ -1197,3 +1289,9 @@ OCaml. You should be familiar with:
   * Implementation of algebraic effect handlers in Multicore OCaml.
   * Developing control-flow abstractions such as restartable exceptions,
     generators, streams, coroutines, and asynchronous I/O.
+
+
+### 7.1 Other resources
+
+  * [OCaml manual on Effects and handlers](https://kcsrk.info/webman/manual/effects.html)
+  * [effect.mli](https://github.com/ocaml/ocaml/blob/trunk/stdlib/effect.mli) in OCaml standard library

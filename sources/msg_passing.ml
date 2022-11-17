@@ -1,4 +1,7 @@
-effect Xchg : int -> int
+open Effect
+open Effect.Deep
+
+type _ Effect.t += Xchg : int -> int Effect.t
 
 (* status of a computation *)
 type status =
@@ -7,9 +10,15 @@ type status =
 
 (* step through [f v] until either termination or pauses on Xchg *)
 let step f v () =
-  match f v with
-  | _ -> Done
-  | effect (Xchg m) k -> Paused (m, k)
+  match_with f v
+  { retc = (fun _ -> Done);
+    exnc = (fun e -> raise e);
+    effc = (fun (type b) (eff: b t) ->
+        match eff with
+        | Xchg m -> Some (fun (k: (b,_) continuation) ->
+                Paused (m, k))
+        | _ -> None
+    )}
 
 (* Run both of the computations concurrenty *)
 let rec run_both a b =

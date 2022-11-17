@@ -1,4 +1,4 @@
-EXE := exceptions.native echo_async.native fringe.native async_await.native generator.native state2.native
+EXE := exceptions.native echo_async.native fringe.native async_await.native generator.native deep_generator.native state2.native
 
 all: $(EXE)
 

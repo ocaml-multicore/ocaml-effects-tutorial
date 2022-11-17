@@ -1,4 +1,8 @@
-effect Conversion_failure : string -> int
+open Effect
+open Effect.Deep
+
+type _ Effect.t += 
+    Conversion_failure : string -> int Effect.t
 
 let int_of_string l =
   try int_of_string l with
@@ -10,9 +14,20 @@ let rec sum_up acc =
     sum_up acc
 
 let _ =
+  Printf.printf "Starting up. Please input:\n%!";
   let r = ref 0 in
-  try sum_up r with
-  | End_of_file -> Printf.printf "Sum is %d\n" !r
-  | effect (Conversion_failure s) k ->
-      Printf.fprintf stderr "Conversion failure \"%s\"\n%!" s;
-      discontinue k (Failure "int_of_string")
+  match_with sum_up r
+  { effc = (fun (type a) (e: a t) ->
+      match e with
+      | Conversion_failure s -> Some (fun (k: (a,_) continuation) ->
+          Printf.fprintf stderr "Conversion failure \"%s\"\n%!" s;
+          discontinue k (Failure "int_of_string"))
+      | _ -> None
+    );
+    exnc = (function
+        | End_of_file -> Printf.printf "Sum is %d\n" !r
+        | e -> raise e
+    );
+    (* Shouldn't reach here, means sum_up returned a value *)
+    retc = fun v -> v
+  }

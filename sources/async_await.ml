@@ -15,19 +15,23 @@ end
 
 module Scheduler : Scheduler = struct
 
+  open Effect
+  open Effect.Deep
+
   type 'a _promise =
     Waiting of ('a,unit) continuation list
   | Done of 'a
 
   type 'a promise = 'a _promise ref
 
-  effect Async : (unit -> 'a) -> 'a promise
+  type _ Effect.t += Async : (unit -> 'a) -> 'a promise Effect.t
+                   | Yield : unit Effect.t
+                   | Await : 'a promise -> 'a Effect.t
+
   let async f = perform (Async f)
 
-  effect Yield : unit
   let yield () = perform Yield
 
-  effect Await : 'a promise -> 'a
   let await p = perform (Await p)
 
   let q = Queue.create ()
@@ -39,18 +43,26 @@ module Scheduler : Scheduler = struct
   let run main =
     let rec fork : 'a. 'a promise -> (unit -> 'a) -> unit =
       fun pr main ->
-        match main () with
-        | v -> failwith "Value case not implemented"
-        | effect (Async f) k ->
-            failwith "Async not implemented"
-        | effect Yield k ->
-            enqueue (continue k);
-            dequeue ()
-        | effect (Await p) k ->
-            begin match !p with
-            | Done v -> continue k v
-            | Waiting l -> failwith "Await.Waiting not implemented"
-            end
+        match_with main ()
+        { retc = (fun v -> failwith "Value case not implemented");
+          exnc = raise;
+          effc = (fun (type b) (eff: b Effect.t) ->
+              match eff with
+              | Async f -> (Some (fun (k: (b,_) continuation) -> 
+                      failwith "Async not implemented"
+              ))
+              | Yield -> (Some (fun k ->
+                      enqueue (continue k);
+                      dequeue ()
+              ))
+              | Await p -> (Some (fun (k: (b,_) continuation) ->
+                begin match !p with
+                | Done v -> continue k v
+                | Waiting l -> failwith "Await.Waiting not implemented"
+                end
+              ))
+              | _ -> None
+          )}
     in
     fork (ref (Waiting [])) main
 end

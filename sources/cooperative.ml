@@ -1,4 +1,6 @@
 open Printf
+open Effect
+open Effect.Deep
 
 module type Scheduler = sig
   val async : (unit -> 'a) -> unit
@@ -11,10 +13,11 @@ end
 
 module Scheduler : Scheduler = struct
 
-  effect Async : (unit -> 'a) -> unit
+  type _ Effect.t += Async : (unit -> 'a) -> unit Effect.t
+                   | Yield : unit Effect.t
+
   let async f = perform (Async f)
 
-  effect Yield : unit
   let yield () = perform Yield
 
   let q = Queue.create ()
@@ -25,14 +28,21 @@ module Scheduler : Scheduler = struct
 
   let rec run : 'a. (unit -> 'a) -> unit =
     fun main ->
-      match main () with
-      | _ -> dequeue ()
-      | effect (Async f) k ->
-          enqueue (continue k);
-          run f
-      | effect Yield k ->
-          enqueue (continue k);
-          dequeue ()
+      match_with main ()
+      { retc = (fun _ -> dequeue ());
+        exnc = (fun e -> raise e);
+        effc = (fun (type b) (eff: b Effect.t) ->
+            match eff with
+            | Async f -> Some (fun (k: (b, _) continuation) ->
+                    enqueue (continue k);
+                    run f
+            )
+            | Yield -> Some (fun k ->
+                    enqueue (continue k);
+                    dequeue ()
+            )
+            | _ -> None
+        )}
 end
 
 open Scheduler
