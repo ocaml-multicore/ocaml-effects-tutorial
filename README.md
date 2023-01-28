@@ -194,7 +194,7 @@ let _ =
   }
 ```
 
-First, lets run this program:
+First, let’s run this program:
 
 ```sh-session
 $ ocaml input_line_eff.ml
@@ -1078,7 +1078,7 @@ be implemented. The source file is `sources/async_await.ml`.
 
 ## 6. Asynchronous I/O
 
-Effect handlers lets us write asynchronous I/O libraries in direct-style. 
+Effect handlers let us write asynchronous I/O libraries in direct-style.
 
 ### 6.1. Blocking echo server
 
