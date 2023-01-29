@@ -12,8 +12,8 @@ Up to date instructions can be found at https://github.com/ocaml-multicore/aweso
 
 ### Install required tools
 
-```bash
-opam install ocamlbuild ocamlfind
+```sh-session
+$ opam install ocamlbuild ocamlfind
 ```
 
 
@@ -81,7 +81,7 @@ let _ =
 The above program is available in `sources/input_line_exn.ml`. You can run this
 program as:
 
-```bash
+```sh-session
 $ cd sources
 $ ocaml input_line_exn.ml
 10
@@ -95,7 +95,7 @@ The `input_line` function returns a string for the input line and raises
 convert the input string to a number. This works as long as the input is a
 number. If not, `int_of_string` raises `Failure` and this program blows up:
 
-```bash
+```sh-session
 $ ocaml input_line_exn.ml
 10
 20
@@ -127,7 +127,7 @@ let _ =
 
 The program now prints a friendlier error message:
 
-```bash
+```sh-session
 $ ocaml input_line_exn2.ml
 10
 20
@@ -194,9 +194,9 @@ let _ =
   }
 ```
 
-First, lets run this program:
+First, let’s run this program:
 
-```bash
+```sh-session
 $ ocaml input_line_eff.ml
 10
 20
@@ -342,7 +342,7 @@ so that it raises an exception at the perform point.
 
 Now,
 
-```bash
+```sh-session
 $ ocaml input_line_eff2.ml
 10
 20
@@ -452,7 +452,7 @@ let _ = IS.run (fun () -> SS.run foo "forty two") 42
 We instantiate two state instances, one with an integer type and
 another with string type. Running the program returns:
 
-```bash
+```sh-session
 $ ocaml state1.ml
 42
 42
@@ -578,7 +578,7 @@ let _ = Printf.printf "%d\n" (e 100)
 illustrates the effect handler stack. Let us compile and examine the file under
 GDB:
 
-```bash
+```sh-session
 $ make gdb.native 
 $ gdb ./gdb.native 
 ```
@@ -735,7 +735,7 @@ let _ = run_both (step (f "a") 3) (step (f "b") 3)
 
 Finally, we test the program with a simple test.
 
-```bash
+```sh-session
 $ ocaml msg_passing.ml
 a: sending 3
 b: sending 3
@@ -1028,7 +1028,7 @@ let main () =
 let _ = run main
 ```
 
-```bash
+```sh-session
 $ ocaml cooperative.ml
 starting a
 starting b
@@ -1078,7 +1078,7 @@ be implemented. The source file is `sources/async_await.ml`.
 
 ## 6. Asynchronous I/O
 
-Effect handlers lets us write asynchronous I/O libraries in direct-style. 
+Effect handlers let us write asynchronous I/O libraries in direct-style.
 
 ### 6.1. Blocking echo server
 
@@ -1118,7 +1118,7 @@ end
 
 You can test this echo server as follows:
 
-```bash
+```sh-session
 $ make echo_unix.native
 $ ./echo_unix.native
 Echo server listening on 127.0.0.1:9301
@@ -1126,7 +1126,7 @@ Echo server listening on 127.0.0.1:9301
 
 In another terminal, establish a client connection:
 
-```bash
+```sh-session
 (* first client *)
 $ telnet localhost 9301
 Trying 127.0.0.1...
@@ -1141,7 +1141,7 @@ server says: world
 The server echoes whatever message that is sent. In another terminal, establish
 a second concurrent client connection:
 
-```bash
+```sh-session
 (* second client *)
 $ telnet localhost 9301
 Trying 127.0.0.1...
@@ -1154,7 +1154,7 @@ world
 The server does not echo the messages since it is blocked serving the first
 client. Now, switch to the first client terminal, and terminate the connection:
 
-```bash
+```sh-session
 (* first client *)
 ^]
 telnet> (* ctrl+d *)
@@ -1164,7 +1164,7 @@ $
 At this point, you should see that all of the messages sent by the second client
 has been echoed:
 
-```bash
+```sh-session
 (* second client *)
 server says: hello
 server says: world
