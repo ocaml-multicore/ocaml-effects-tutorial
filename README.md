@@ -24,7 +24,7 @@ The tutorial is structured as follows:
 1. [Algebraic Effects and Handlers.](#1-algebraic-effects-and-handlers)  
   1.1. [Recovering from errors](#11-recovering-from-errors)  
   1.2. [Basics](#12-basics)   
-2. [Shallow and Deep Handlers.](#2-shallow-and-deep-handlers)    
+2. [Shallow vs Deep Handlers.](#2-shallow-vs-deep-handlers)    
 3. [Delimited Continuations: A deep dive.](#3-delimited-continuations-a-deep-dive)  
   3.1. [Examining effect handlers through GDB](#31-examining-effect-handlers-through-gdb)  
 4. [Generators & Streams.](#4-general-control-flow-abstractions-generators--streams)  
