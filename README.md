@@ -1261,7 +1261,7 @@ next task. The main schedule loop is:
             Hashtbl.remove ht x
       in
       resume br rdy_rd_fds;
-      resume br rdy_wr_fds;
+      resume bw rdy_wr_fds;
       schedule ()
     end
 ```
