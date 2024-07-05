@@ -14,21 +14,20 @@ jobs:
           - ubuntu-latest
           - macos-latest
         ocaml-compiler:
-          - ocaml-base-compiler.5.0.0~beta1
+          - 5.2
 
     runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
-        uses: ocaml/setup-ocaml@v2
+        uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           opam-repositories: |
             default: https://github.com/ocaml/opam-repository.git
-            alpha: git+https://github.com/kit-ty-kate/opam-alpha-repository
           cache-prefix: ${{ steps.multicore_hash.outputs.commit }}
           opam-depext: false
 
