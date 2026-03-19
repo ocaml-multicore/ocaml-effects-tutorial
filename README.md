@@ -1,5 +1,5 @@
 # Concurrent Programming with Effect Handlers
-[![Build Status](https://github.com/ocamllabs/ocaml-effects-tutorial/actions/workflows/prs.yml/badge.svg)](https://github.com/ocamllabs/ocaml-effects-tutorial/actions/workflows/prs.yml)
+[![Build Status](https://github.com/ocaml-multicore/ocaml-effects-tutorial/actions/workflows/prs.yml/badge.svg)](https://github.com/ocaml-multicore/ocaml-effects-tutorial/actions/workflows/prs.yml)
 
 Originally written as materials for the [CUFP 17 tutorial](http://cufp.org/2017/c3-daniel-hillerstrom-kc-concurrent-programming-with-effect-handlers.html).
 
