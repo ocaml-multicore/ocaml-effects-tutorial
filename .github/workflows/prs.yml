@@ -28,4 +28,5 @@ jobs:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           opam-depext: false
 
+      - run: opam install dune
       - run: opam exec -- dune build
