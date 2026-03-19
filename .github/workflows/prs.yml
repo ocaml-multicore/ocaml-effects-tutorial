@@ -26,7 +26,6 @@ jobs:
         uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
-          opam-depext: false
+          dune-cache: true
 
-      - run: opam install dune
       - run: opam exec -- dune build
