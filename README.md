@@ -1,19 +1,23 @@
-# Concurrent Programming with Effect Handlers 
-<!-- [![Build Status](https://travis-ci.org/ocamllabs/ocaml-effects-tutorial.svg?branch=master)](https://travis-ci.org/ocamllabs/ocaml-effects-tutorial)    -->
+# Concurrent Programming with Effect Handlers
 [![Build Status](https://github.com/ocamllabs/ocaml-effects-tutorial/actions/workflows/prs.yml/badge.svg)](https://github.com/ocamllabs/ocaml-effects-tutorial/actions/workflows/prs.yml)
 
 Originally written as materials for the [CUFP 17 tutorial](http://cufp.org/2017/c3-daniel-hillerstrom-kc-concurrent-programming-with-effect-handlers.html).
 
 ## Setting up
 
-### Install a compatible OCaml compiler
+### Install OCaml
 
-Up to date instructions can be found at https://github.com/ocaml-multicore/awesome-multicore-ocaml#installation
-
-### Install required tools
+Install OCaml 5.4.1 or later using [opam](https://opam.ocaml.org/):
 
 ```sh-session
-$ opam install ocamlbuild ocamlfind
+$ opam switch create 5.4.1
+$ eval $(opam env)
+```
+
+### Build
+
+```sh-session
+$ dune build
 ```
 
 
@@ -21,24 +25,24 @@ $ opam install ocamlbuild ocamlfind
 
 The tutorial is structured as follows:
 
-1. [Algebraic Effects and Handlers.](#1-algebraic-effects-and-handlers)  
-  1.1. [Recovering from errors](#11-recovering-from-errors)  
-  1.2. [Basics](#12-basics)   
-2. [Shallow vs Deep Handlers.](#2-shallow-vs-deep-handlers)    
-3. [Delimited Continuations: A deep dive.](#3-delimited-continuations-a-deep-dive)  
-  3.1. [Examining effect handlers through GDB](#31-examining-effect-handlers-through-gdb)  
-4. [Generators & Streams.](#4-generators--streams)  
-  4.1. [Message passing](#41-message-passing)   
-  4.2. [Generators from iterators](#42-generators-from-iterators)  
-  4.3. [Using the generator](#43-using-the-generator)  
-  4.4. [Streams](#44-streams)  
-5. [Cooperative Concurrency.](#5-cooperative-concurrency)  
-  5.1. [Coroutines](#51-coroutines)  
-  5.2. [Async/Await](#52-asyncawait)  
-6. [Asynchronous I/O.](#6-asynchronous-io)  
-  6.1. [Blocking echo server](#61-blocking-echo-server)  
-  6.2. [Asynchronous echo server](#62-asynchronous-echo-server)  
-7. [Conclusion.](#7-conclusion)  
+1. [Algebraic Effects and Handlers.](#1-algebraic-effects-and-handlers)
+  1.1. [Recovering from errors](#11-recovering-from-errors)
+  1.2. [Basics](#12-basics)
+2. [Shallow vs Deep Handlers.](#2-shallow-vs-deep-handlers)
+3. [Delimited Continuations: A deep dive.](#3-delimited-continuations-a-deep-dive)
+  3.1. [Examining effect handlers through GDB](#31-examining-effect-handlers-through-gdb)
+4. [Generators & Streams.](#4-generators--streams)
+  4.1. [Message passing](#41-message-passing)
+  4.2. [Generators from iterators](#42-generators-from-iterators)
+  4.3. [Using the generator](#43-using-the-generator)
+  4.4. [Streams](#44-streams)
+5. [Cooperative Concurrency.](#5-cooperative-concurrency)
+  5.1. [Coroutines](#51-coroutines)
+  5.2. [Async/Await](#52-asyncawait)
+6. [Asynchronous I/O.](#6-asynchronous-io)
+  6.1. [Blocking echo server](#61-blocking-echo-server)
+  6.2. [Asynchronous echo server](#62-asynchronous-echo-server)
+7. [Conclusion.](#7-conclusion)
 
 The tutorial also includes the following exercises:
 
@@ -55,11 +59,11 @@ An algebraic effect handler is a programming abstraction for manipulating
 control-flow in a first-class fashion. They generalise common abstractions such
 as exceptions, generators, asynchronous I/O, or concurrency, as well as other
 seemingly esoteric programming abstractions such as transactional memory and
-probabilistic computations. 
+probabilistic computations.
 
-Operationally, effect handlers offer a form of first-class, restartable exception 
+Operationally, effect handlers offer a form of first-class, restartable exception
 mechanism. In this tutorial, we shall introduce gently algebraic effect and
-handlers with gentle examples and then continue on to more involved examples. 
+handlers with gentle examples and then continue on to more involved examples.
 
 ### 1.1. Recovering from errors
 
@@ -70,9 +74,9 @@ from standard input and prints the sum of the numbers:
 let rec sum_up acc =
     let l = input_line stdin in
     acc := !acc + int_of_string l;
-    sum_up acc 
+    sum_up acc
 
-let _ = 
+let _ =
   let r = ref 0 in
   try sum_up r with
   | End_of_file -> Printf.printf "Sum is %d\n" !r
@@ -82,8 +86,7 @@ The above program is available in `sources/input_line_exn.ml`. You can run this
 program as:
 
 ```sh-session
-$ cd sources
-$ ocaml input_line_exn.ml
+$ dune exec sources/input_line_exn.exe
 10
 20
 (* ctrl+d *)
@@ -96,7 +99,7 @@ convert the input string to a number. This works as long as the input is a
 number. If not, `int_of_string` raises `Failure` and this program blows up:
 
 ```sh-session
-$ ocaml input_line_exn.ml
+$ dune exec sources/input_line_exn.exe
 10
 20
 MMXVII
@@ -128,7 +131,7 @@ let _ =
 The program now prints a friendlier error message:
 
 ```sh-session
-$ ocaml input_line_exn2.ml
+$ dune exec sources/input_line_exn2.exe
 10
 20
 MMXVII
@@ -152,7 +155,7 @@ We could change the code, but if `sum_up` function was from a third-party
 library, changing code is generally not an acceptable option. The issue here is
 that the library determines whether the error is fatal or not. What we would
 like is for **the client of a library determining whether an error is fatal or
-not**. 
+not**.
 
 ### 1.2. Basics
 
@@ -197,7 +200,7 @@ let _ =
 First, let’s run this program:
 
 ```sh-session
-$ ocaml input_line_eff.ml
+$ dune exec sources/input_line_eff.exe
 10
 20
 MMXVII
@@ -220,12 +223,12 @@ defined in the `Effect` module.
 
 Unlike exceptions, performing an effect returns a value. The declaration here
 says that `Conversion_failure` is an algebraic effect that takes a string
-parameter, which when performed, returns an integer. 
+parameter, which when performed, returns an integer.
 
 Just like exceptions, effects are values. The type of `Conversion_failure
 "MMXVII"` is `int Effect.t`, where `int` is the result of performing the effect.
 We perform the effect with `perform : 'a Effect.t -> 'a` primitive (c.f. `raise :
-exn -> 'a (* bottom *)`). 
+exn -> 'a (* bottom *)`).
 
 Effect handlers are defined in the modules `Effect.Deep` and `Effect.Shallow`.
 We'll discuss the differences between the two later.
@@ -311,7 +314,7 @@ between the point of performing the effect and the effect handler. The delimited
 continuation is like a dynamically defined function, that can be called and
 returns a value. The type of `k` in this case is `(int, int) continuation`,
 which says that the continuation expects an integer to continue (the first type
-parameter), and returns with an integer (the second type parameter). 
+parameter), and returns with an integer (the second type parameter).
 
 The delimited continuation is resumed with `Effect.Deep`'s `continue : ('a,'b) continuation ->
 'a -> 'b`. In this example, `continue k 0` resumes the continuation
@@ -320,7 +323,7 @@ with `0`, and the corresponding `perform (Conversion_failure l)` returns with
 
 If we do want to consider the error to be fatal (`sources/input_line_eff2.ml`),
 then we can `discontinue : ('a,'b) continuation -> exn -> 'b` the continuation
-so that it raises an exception at the perform point. 
+so that it raises an exception at the perform point.
 
 ```ocaml
   match_with sum_up r
@@ -343,7 +346,7 @@ so that it raises an exception at the perform point.
 Now,
 
 ```sh-session
-$ ocaml input_line_eff2.ml
+$ dune exec sources/input_line_eff2.exe
 10
 20
 MMXVII
@@ -356,15 +359,15 @@ Fatal error: exception Failure("int_of_string")
 Unlike [Eff](http://www.eff-lang.org/),
 [Koka](https://github.com/koka-lang/koka),
 [Links](https://github.com/links-lang/links), and other languages that
-support effect handlers, effects in Multicore OCaml are unchecked 
-currently. A program that does not handle a performed effect fails 
+support effect handlers, effects in OCaml are unchecked
+currently. A program that does not handle a performed effect fails
 with a runtime error.
 
 Let's fire up the OCaml top-level:
 
 ```ocaml
 $ ocaml
-OCaml version 5.0.0~beta1
+OCaml version 5.4.1
 
 # open Effect;;
 # type _ Effect.t += E : unit Effect.t;;
@@ -433,7 +436,7 @@ end
 We use `Effect.Shallow` by wrapping calculations with `continue_with : ('c,'a) continuation -> 'c -> ('a,'b) handler -> 'b` and getting an initial continuation with `val fiber : ('a -> 'b) -> ('a, 'b) continuation`
 
 In this example, we define an effect `Get` that returns a
-value of type `t` when performed. 
+value of type `t` when performed.
 
 ```ocaml
 module IS = State (struct type t = int end)
@@ -444,7 +447,7 @@ let foo () : unit =
   printf "%d\n" (IS.get ());
   printf "%d\n" (IS.get ());
   printf "%s\n" (SS.get ());
-  printf "%s\n" (SS.get ()) 
+  printf "%s\n" (SS.get ())
 
 let _ = IS.run (fun () -> SS.run foo "forty two") 42
 ```
@@ -453,7 +456,7 @@ We instantiate two state instances, one with an integer type and
 another with string type. Running the program returns:
 
 ```sh-session
-$ ocaml state1.ml
+$ dune exec sources/state1.exe
 42
 42
 42
@@ -471,7 +474,7 @@ The source file is `sources/state2.ml`.
 
 **EDITOR'S NOTE: The implementation has changed since this section was written. Results in gdb will differ, but the concepts of the implementation remain mostly the same.**
 
-Algebraic effect handlers in Multicore OCaml are very efficient due to several
+Algebraic effect handlers in OCaml are very efficient due to several
 choices we make in their implementation. Understanding the implementation of
 delimited continuations also helps to develop a mental model for reasoning about
 programs that use effect handlers.
@@ -491,7 +494,7 @@ Execution stack
 +----+   +----+
 ```
 
-An effect handler instantiates a new fiber for evaluating the expression. 
+An effect handler instantiates a new fiber for evaluating the expression.
 
 ```
 try ex with
@@ -512,7 +515,7 @@ handles the effect. The popped sequence of fibers becomes the delimited
 continuation.
 
 ```
-effect E : unit 
+effect E : unit
 
 try perform E with
 | effect E k -> ....
@@ -533,7 +536,7 @@ the execution stack. Importantly, our continuations are **one-shot** -- they can
 only be resumed once. One shotness means that we never have to copy our
 continuations in the case that we may need it for a future invocation. For this
 reason, context switching between fibers is really fast and is completely in
-userland code and the kernel is not involved. 
+userland code and the kernel is not involved.
 
 ### 3.1 Examining effect handlers through GDB
 
@@ -579,8 +582,8 @@ illustrates the effect handler stack. Let us compile and examine the file under
 GDB:
 
 ```sh-session
-$ make gdb.native 
-$ gdb ./gdb.native 
+$ dune build
+$ gdb ./_build/default/sources/gdb.exe
 ```
 
 `caml_resume` is the native stub function through which a fiber is attached to
@@ -588,7 +591,7 @@ the top of the execution stack and control switches to it. This happens when a
 new handler is installed, a continuation is resumed with `continue` or
 `discontinue`. Similarly `caml_perform` is the native function which implements
 `perform` primitive. We set breakpoints on these two functions to observe the
-program as it executes. 
+program as it executes.
 
 ```
 (gdb) break caml_perform
@@ -596,7 +599,7 @@ Breakpoint 1 at 0xaeca8
 (gdb) break caml_resume
 Breakpoint 2 at 0xaed38
 (gdb) r
-Starting program: /home/sudha/ocaml/temp/ocaml-effects-tutorial/sources/gdb.native 
+Starting program: /home/user/ocaml-effects-tutorial/_build/default/sources/gdb.exe
 [Thread debugging using libthread_db enabled]
 Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
 
@@ -622,7 +625,7 @@ Enter effect handler in `e`. The `<signal handler called>` frames correspond to
 the transition between C frames to OCaml frames, and between OCaml frames of two
 different fibers. These signal handler frames have nothing to do with signals,
 but are just a hack to let GDB know that the execution stack is a linked list of
-contiguous stack chunks. 
+contiguous stack chunks.
 
 ```
 (gdb) c
@@ -650,7 +653,7 @@ The control switches to the effect handler. In the effect handler for `Peek` in
 
 This break point corresponds to `continue k 42` in `e`.
 
-The program terminates normally. 
+The program terminates normally.
 
 ```
 Continuing.
@@ -690,7 +693,7 @@ type status =
 The task may either have been `Done` or is `Paused` with the message to send as
 well as the continuation, which expects the message to receive. The continuation
 results in another status when resumed. We define a `step` function that runs
-the function `f` for one step with argument `v`. 
+the function `f` for one step with argument `v`.
 
 ```ocaml
 let step f v () =
@@ -736,7 +739,7 @@ let _ = run_both (step (f "a") 3) (step (f "b") 3)
 Finally, we test the program with a simple test.
 
 ```sh-session
-$ ocaml msg_passing.ml
+$ dune exec sources/msg_passing.exe
 a: sending 3
 b: sending 3
 a: received 3
@@ -763,7 +766,7 @@ type ('elt,'container) iterator = ('elt -> unit) -> 'container-> unit
 ```
 
 where `'elt` is the type of element and `'container` is the type of the container
-over which the function iterates. 
+over which the function iterates.
 
 On the other hand, a generator is a function where the client of the library has
 control over the traversal. We can imagine a `List.generator : 'a list -> (unit
@@ -982,8 +985,8 @@ We use a queue for the tasks that are ready to run:
 ```ocaml
 let q = Queue.create ()
 let enqueue t = Queue.push t q
-let dequeue () = 
-  if Queue.is_empty q then () 
+let dequeue () =
+  if Queue.is_empty q then ()
   else Queue.pop q ()
 ```
 
@@ -1029,7 +1032,7 @@ let _ = run main
 ```
 
 ```sh-session
-$ ocaml cooperative.ml
+$ dune exec sources/cooperative.exe
 starting a
 starting b
 ending a
@@ -1119,8 +1122,7 @@ end
 You can test this echo server as follows:
 
 ```sh-session
-$ make echo_unix.native
-$ ./echo_unix.native
+$ dune exec sources/echo_unix.exe
 Echo server listening on 127.0.0.1:9301
 ```
 
@@ -1211,7 +1213,7 @@ We define a type for tasks blocked on I/O, and a pair of hash tables to hold the
 continuations blocked on reads and writes:
 
 ```ocaml
-type blocked = Blocked : 'a eff * ('a, unit) continuation -> blocked
+type blocked = Blocked : 'a Effect.t * ('a, unit) continuation -> blocked
 
 (* tasks blocked on reads *)
 let br = Hashtbl.create 13
@@ -1219,16 +1221,16 @@ let br = Hashtbl.create 13
 let bw = Hashtbl.create 13
 ```
 
-Now, the handler for `Recv` is:
+Now, the handler for `Recv` is (inside the `effc` handler):
 
 ```ocaml
-| effect (Recv (fd,buf,pos,len,mode) as e) k ->
+| (Recv (fd,buf,pos,len,mode) as e) -> Some (fun (k: (b,_) continuation) ->
     if ready_to_read fd then
       continue k (Unix.recv fd buf pos len mode)
     else begin
       Hashtbl.add br fd (Blocked (e, k));
       schedule ()
-    end
+    end)
 ```
 
 If the file descriptor is ready to be read, then we perform the read immediately
@@ -1275,23 +1277,23 @@ may unblock further tasks and we continue running them.
 
 In the file, `sources/echo_async.ml`, some of the functionality for handling
 `Accept` and `Send` event are not implemented. Your task is to implement these.
-Once you implement these primitives, you can run `echo_async.native` to start
+Once you implement these primitives, you can run `dune exec sources/echo_async.exe` to start
 the asynchronous echo server. This server is able to respond to multiple
 concurrent clients.
 
 ## 7. Conclusion
 
-Hopefully you've enjoyed the tutorial on algebraic effect handlers in Multicore
+Hopefully you've enjoyed the tutorial on algebraic effect handlers in
 OCaml. You should be familiar with:
 
   * What algebraic effects and handlers are.
-  * Programming with algebraic effect handlers in Multicore OCaml.
-  * Implementation of algebraic effect handlers in Multicore OCaml.
+  * Programming with algebraic effect handlers in OCaml.
+  * Implementation of algebraic effect handlers in OCaml.
   * Developing control-flow abstractions such as restartable exceptions,
     generators, streams, coroutines, and asynchronous I/O.
 
 
 ### 7.1 Other resources
 
-  * [OCaml manual on Effects and handlers](https://kcsrk.info/webman/manual/effects.html)
+  * [OCaml manual on Effects and handlers](https://v2.ocaml.org/manual/effects.html)
   * [effect.mli](https://github.com/ocaml/ocaml/blob/trunk/stdlib/effect.mli) in OCaml standard library

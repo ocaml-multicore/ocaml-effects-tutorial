@@ -8,7 +8,7 @@
  * Compiling
  * ---------
  *
- *   make
+ *   dune build
  *
  * Running
  * -------

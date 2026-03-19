@@ -8,12 +8,8 @@
 *.cmxs
 *.cmxa
 
-# ocamlbuild working directory
+# dune build directory
 _build/
-
-# ocamlbuild targets
-*.byte
-*.native
 
 # oasis generated files
 setup.data

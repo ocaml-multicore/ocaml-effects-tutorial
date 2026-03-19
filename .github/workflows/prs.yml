@@ -14,7 +14,7 @@ jobs:
           - ubuntu-latest
           - macos-latest
         ocaml-compiler:
-          - 5.2
+          - 5.4
 
     runs-on: ${{ matrix.os }}
 
@@ -26,13 +26,6 @@ jobs:
         uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
-          opam-repositories: |
-            default: https://github.com/ocaml/opam-repository.git
-          cache-prefix: ${{ steps.multicore_hash.outputs.commit }}
           opam-depext: false
 
-      - run: opam install ocamlbuild ocamlfind
-
-      - run: |
-            cd sources
-            opam exec -- make all
+      - run: opam exec -- dune build

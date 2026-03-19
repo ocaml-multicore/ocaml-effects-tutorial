@@ -1,17 +1,9 @@
-FROM ocaml/opam:ubuntu-lts-ocaml-5.0
+FROM ocaml/opam:ubuntu-lts-ocaml-5.4
 
-RUN opam install ocamlbuild ocamlfind
-
-COPY sources/Makefile ./sources/
+COPY dune-project ./
+COPY sources/dune ./sources/
 COPY sources/*.ml ./sources/
-
-COPY sources/solved/Makefile ./sources/solved/
+COPY sources/solved/dune ./sources/solved/
 COPY sources/solved/*.ml ./sources/solved/
 
-WORKDIR sources
-
-RUN sudo bash -c "eval $(opam env) make all"
-
-WORKDIR solved
-
-RUN sudo bash -c "eval $(opam env) make all"
+RUN eval $(opam env) && dune build

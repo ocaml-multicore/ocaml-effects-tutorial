@@ -1,0 +1,20 @@
+(executables
+ (names
+  input_line_exn
+  input_line_exn2
+  input_line_eff
+  input_line_eff2
+  exceptions
+  state1
+  state2
+  gdb
+  msg_passing
+  fringe
+  generator
+  cooperative
+  async_await
+  echo_unix
+  echo_async)
+ (libraries unix)
+ (ocamlopt_flags (:standard -g))
+ (flags (:standard -w -a)))

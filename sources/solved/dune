@@ -1,0 +1,13 @@
+(executables
+ (names
+  exceptions
+  echo_async
+  fringe
+  async_await
+  generator
+  deep_generator
+  state2
+  myfringe)
+ (libraries unix)
+ (ocamlopt_flags (:standard -g))
+ (flags (:standard -w -a)))
